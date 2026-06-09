@@ -1,0 +1,29 @@
+# Internal planning docs — DO NOT publish
+plan.md
+workshop_plan.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+.user.yml
+
+# Airflow / Astro
+airflow/logs/
+airflow/.astro/
+airflow/include/*.p8
+airflow/include/*.pem
+*.p8
+*.pem
+
+# OS / editor
+.DS_Store
+.ipynb_checkpoints/
+.vscode/

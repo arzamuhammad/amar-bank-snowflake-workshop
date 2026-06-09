@@ -1,0 +1,25 @@
+name: 'amar_workshop'
+version: '1.0.0'
+config-version: 2
+
+profile: 'amar_workshop'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  amar_workshop:
+    staging:
+      +materialized: view
+      +schema: SILVER
+    gold:
+      +materialized: table
+      +schema: GOLD
+
+snapshots:
+  amar_workshop:
+    +target_schema: SILVER

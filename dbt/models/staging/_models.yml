@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Cleaned customer dimension (PII tagged & masked in GOVERNANCE step)."
+    columns:
+      - name: customer_id
+        description: "Unique customer id."
+        tests: [not_null, unique]
+      - name: nik
+        description: "Indonesian national id (16 digits)."
+        tests: [not_null]
+      - name: segment
+        tests:
+          - not_null
+          - accepted_values: {values: ['Tunaiku', 'Senyumku', 'SMB']}
+      - name: credit_score
+        description: "FICO-like score, expected 300-850."
+
+  - name: stg_loans
+    description: "Cleaned loans with DPD bucketing."
+    columns:
+      - name: loan_id
+        tests: [not_null, unique]
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships: {to: ref('stg_customers'), field: customer_id}
+      - name: is_default
+        tests:
+          - accepted_values: {values: [0, 1]}
+
+  - name: stg_repayments
+    columns:
+      - name: repayment_id
+        tests: [not_null, unique]
+      - name: loan_id
+        tests:
+          - relationships: {to: ref('stg_loans'), field: loan_id}
+
+  - name: stg_savings
+    columns:
+      - name: account_id
+        tests: [not_null, unique]
+      - name: account_type
+        tests:
+          - accepted_values: {values: ['TABUNGAN', 'DEPOSITO']}
+
+  - name: stg_transactions
+    columns:
+      - name: txn_id
+        tests: [not_null, unique]

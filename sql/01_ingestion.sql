@@ -1,0 +1,181 @@
+-- =====================================================================
+-- 01_ingestion.sql  |  Amar Bank Snowflake Workshop  |  Session 1
+-- External stage on a PUBLIC S3 bucket -> COPY INTO Bronze tables.
+-- Airflow (SnowflakeOperator) runs these COPY statements.
+--
+-- >>> EDIT THESE PLACEHOLDERS before running <<<
+--   <<S3_BUCKET>>  e.g. amar-workshop-public
+--   <<S3_PREFIX>>  e.g. data            (folder inside the bucket)
+--   <<AWS_REGION>> e.g. ap-southeast-3  (only needed for storage integration)
+-- =====================================================================
+USE DATABASE AMAR_WORKSHOP;
+USE SCHEMA BRONZE;
+USE WAREHOUSE AMAR_WORKSHOP_WH;
+
+-- ---------------------------------------------------------------------
+-- OPTION A (workshop default): PUBLIC bucket, no credentials needed.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE STAGE BRONZE.STG_S3_AMAR
+    URL = 's3://<<S3_BUCKET>>/<<S3_PREFIX>>/'
+    DIRECTORY = (ENABLE = TRUE)
+    COMMENT = 'Public S3 bucket with synthetic workshop data';
+
+-- ---------------------------------------------------------------------
+-- OPTION B (production pattern): Storage Integration (private bucket).
+-- Uncomment + have an admin run, then use it on the stage.
+-- ---------------------------------------------------------------------
+-- CREATE STORAGE INTEGRATION IF NOT EXISTS AMAR_S3_INT
+--     TYPE = EXTERNAL_STAGE STORAGE_PROVIDER = 'S3' ENABLED = TRUE
+--     STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::<acct>:role/<role>'
+--     STORAGE_ALLOWED_LOCATIONS = ('s3://<<S3_BUCKET>>/<<S3_PREFIX>>/');
+-- DESC INTEGRATION AMAR_S3_INT;  -- copy STORAGE_AWS_IAM_USER_ARN + EXTERNAL_ID into the IAM trust policy
+-- CREATE OR REPLACE STAGE BRONZE.STG_S3_AMAR
+--     STORAGE_INTEGRATION = AMAR_S3_INT
+--     URL = 's3://<<S3_BUCKET>>/<<S3_PREFIX>>/';
+
+LIST @BRONZE.STG_S3_AMAR;
+
+-- ---------------------------------------------------------------------
+-- Bronze tables (raw landing). _LOADED_AT + _SOURCE_FILE for lineage.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE TABLE BRONZE.RAW_CUSTOMERS (
+    customer_id    STRING,
+    nik            STRING,
+    npwp           STRING,
+    full_name      STRING,
+    gender         STRING,
+    birth_date     DATE,
+    province       STRING,
+    city           STRING,
+    segment        STRING,
+    credit_score   NUMBER,
+    monthly_income NUMBER,
+    phone          STRING,
+    email          STRING,
+    created_at     TIMESTAMP_NTZ,
+    updated_at     TIMESTAMP_NTZ,
+    _loaded_at     TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    _source_file   STRING
+);
+
+CREATE OR REPLACE TABLE BRONZE.RAW_LOANS (
+    loan_id       STRING,
+    customer_id   STRING,
+    product_type  STRING,
+    plafond       NUMBER,
+    tenor_months  NUMBER,
+    interest_rate FLOAT,
+    disbursed_at  DATE,
+    status        STRING,
+    dpd           NUMBER,
+    is_default    NUMBER,
+    outstanding   NUMBER,
+    updated_at    TIMESTAMP_NTZ,
+    _loaded_at    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    _source_file  STRING
+);
+
+CREATE OR REPLACE TABLE BRONZE.RAW_REPAYMENTS (
+    repayment_id STRING,
+    loan_id      STRING,
+    due_date     DATE,
+    paid_date    DATE,
+    amount_due   NUMBER,
+    amount_paid  NUMBER,
+    is_late      NUMBER,
+    _loaded_at   TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    _source_file STRING
+);
+
+CREATE OR REPLACE TABLE BRONZE.RAW_SAVINGS (
+    account_id    STRING,
+    customer_id   STRING,
+    account_type  STRING,
+    balance       NUMBER,
+    interest_rate FLOAT,
+    opened_at     DATE,
+    status        STRING,
+    _loaded_at    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    _source_file  STRING
+);
+
+CREATE OR REPLACE TABLE BRONZE.RAW_TRANSACTIONS (
+    txn_id       STRING,
+    account_id   STRING,
+    txn_type     STRING,
+    channel      STRING,
+    amount       NUMBER,
+    txn_ts       TIMESTAMP_NTZ,
+    _loaded_at   TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    _source_file STRING
+);
+
+-- ---------------------------------------------------------------------
+-- COPY INTO (CSV with header -> match by column name).
+-- Airflow calls each of these as a task.
+-- ---------------------------------------------------------------------
+COPY INTO BRONZE.RAW_CUSTOMERS (customer_id, nik, npwp, full_name, gender, birth_date,
+        province, city, segment, credit_score, monthly_income, phone, email, created_at, updated_at, _source_file)
+  FROM (
+    SELECT $1:customer_id, $1:nik, $1:npwp, $1:full_name, $1:gender, $1:birth_date,
+           $1:province, $1:city, $1:segment, $1:credit_score, $1:monthly_income, $1:phone,
+           $1:email, $1:created_at, $1:updated_at, METADATA$FILENAME
+    FROM @BRONZE.STG_S3_AMAR/customers.csv
+  )
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV)
+  MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
+  ON_ERROR = CONTINUE;
+
+COPY INTO BRONZE.RAW_LOANS (loan_id, customer_id, product_type, plafond, tenor_months,
+        interest_rate, disbursed_at, status, dpd, is_default, outstanding, updated_at, _source_file)
+  FROM (
+    SELECT $1:loan_id, $1:customer_id, $1:product_type, $1:plafond, $1:tenor_months,
+           $1:interest_rate, $1:disbursed_at, $1:status, $1:dpd, $1:is_default,
+           $1:outstanding, $1:updated_at, METADATA$FILENAME
+    FROM @BRONZE.STG_S3_AMAR/loans.csv
+  )
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+
+COPY INTO BRONZE.RAW_REPAYMENTS (repayment_id, loan_id, due_date, paid_date, amount_due, amount_paid, is_late, _source_file)
+  FROM (
+    SELECT $1:repayment_id, $1:loan_id, $1:due_date, $1:paid_date, $1:amount_due, $1:amount_paid, $1:is_late, METADATA$FILENAME
+    FROM @BRONZE.STG_S3_AMAR/repayments.csv
+  )
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+
+COPY INTO BRONZE.RAW_SAVINGS (account_id, customer_id, account_type, balance, interest_rate, opened_at, status, _source_file)
+  FROM (
+    SELECT $1:account_id, $1:customer_id, $1:account_type, $1:balance, $1:interest_rate, $1:opened_at, $1:status, METADATA$FILENAME
+    FROM @BRONZE.STG_S3_AMAR/savings.csv
+  )
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+
+COPY INTO BRONZE.RAW_TRANSACTIONS (txn_id, account_id, txn_type, channel, amount, txn_ts, _source_file)
+  FROM (
+    SELECT $1:txn_id, $1:account_id, $1:txn_type, $1:channel, $1:amount, $1:txn_ts, METADATA$FILENAME
+    FROM @BRONZE.STG_S3_AMAR/transactions.csv
+  )
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+
+-- ---------------------------------------------------------------------
+-- DEMO: file formats (Parquet + semi-structured JSON)
+-- ---------------------------------------------------------------------
+-- SELECT $1 FROM @BRONZE.STG_S3_AMAR/transactions.parquet (FILE_FORMAT => BRONZE.FF_PARQUET) LIMIT 10;
+-- SELECT $1 FROM @BRONZE.STG_S3_AMAR/savings.json (FILE_FORMAT => BRONZE.FF_JSON) LIMIT 10;
+
+-- ---------------------------------------------------------------------
+-- DEMO: Schema Evolution (customers_v2 adds loyalty_tier, referral_code)
+-- ---------------------------------------------------------------------
+-- ALTER TABLE BRONZE.RAW_CUSTOMERS SET ENABLE_SCHEMA_EVOLUTION = TRUE;
+-- COPY INTO BRONZE.RAW_CUSTOMERS
+--   FROM @BRONZE.STG_S3_AMAR/customers_v2_schemadrift.csv
+--   FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV)
+--   MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+-- (new columns appear automatically; back-loaded rows are NULL)
+
+-- ---- Quick verification ----------------------------------------------
+SELECT 'RAW_CUSTOMERS' t, COUNT(*) n FROM BRONZE.RAW_CUSTOMERS
+UNION ALL SELECT 'RAW_LOANS', COUNT(*) FROM BRONZE.RAW_LOANS
+UNION ALL SELECT 'RAW_REPAYMENTS', COUNT(*) FROM BRONZE.RAW_REPAYMENTS
+UNION ALL SELECT 'RAW_SAVINGS', COUNT(*) FROM BRONZE.RAW_SAVINGS
+UNION ALL SELECT 'RAW_TRANSACTIONS', COUNT(*) FROM BRONZE.RAW_TRANSACTIONS;

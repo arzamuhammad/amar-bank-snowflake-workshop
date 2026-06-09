@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: AMAR_WORKSHOP
+    schema: BRONZE
+    description: "Raw data landed from S3 via COPY INTO (Airflow ingestion)."
+    tables:
+      - name: raw_customers
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 48, period: hour}
+      - name: raw_loans
+      - name: raw_repayments
+      - name: raw_savings
+      - name: raw_transactions

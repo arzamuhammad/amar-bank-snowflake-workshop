@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: mart_loan_performance
+    description: "Loan-level performance mart: DPD bucket, default flag, collection ratio. Used by Streamlit & Cortex Analyst."
+    columns:
+      - name: loan_id
+        tests: [not_null, unique]
+      - name: dpd_bucket
+        tests:
+          - accepted_values:
+              values: ['CURRENT','DPD_1_30','DPD_31_60','DPD_61_90','DPD_90_PLUS']
+
+  - name: mart_customer_360
+    description: "One row per customer combining loans, savings, transactions."
+    columns:
+      - name: customer_id
+        tests: [not_null, unique]
