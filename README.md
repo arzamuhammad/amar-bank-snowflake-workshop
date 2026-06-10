@@ -64,11 +64,15 @@ Airflow (local, Docker)              AWS S3 (public, workshop only)        Snowf
 │   ├── 04_analytics.sql        # Session 2: warehouse scale + result cache
 │   ├── 06_cortex_ai.sql        # Session 6: semantic view + Cortex Search
 │   └── 99_prep_checklist.sql   # pre-workshop verification
-├── streamlit/streamlit_app.py  # Session 2: portfolio dashboard (SiS)
-├── docs/
-│   ├── SESSION3_GOVERNANCE_LINEAGE.md   # lineage/Horizon + DMF review
-│   └── SESSION5_CORTEX_CODE.md          # ML via Cortex Code prompting
-├── DEMO_GUIDANCE.md            # step-by-step guide (Bahasa Indonesia)
+├── streamlit/streamlit_app.py  # Session 2: reference dashboard (AI-built in guide)
+├── guides/                     # DETAILED per-session guides (Bahasa Indonesia, beginner)
+│   ├── GUIDE_SESSION0_SETUP.md
+│   ├── GUIDE_SESSION1_DATA_ENGINEERING.md
+│   ├── GUIDE_SESSION2_ANALYTICS.md          # + build Streamlit via AI prompts
+│   ├── GUIDE_SESSION3_GOVERNANCE.md
+│   ├── GUIDE_SESSION5_CORTEX_CODE.md
+│   └── GUIDE_SESSION6_CONVERSATIONAL_AI.md
+├── DEMO_GUIDANCE.md            # index to all session guides
 ├── dbt/                        # dbt Projects on Snowflake
 │   ├── dbt_project.yml, profiles.yml
 │   ├── models/staging/         # stg_* (views) + tests/docs
@@ -105,10 +109,10 @@ cd ../airflow && astro dev start   # UI: http://localhost:8080
 ---
 
 ## Workshop sessions
-1. **Data Engineering** (focus): ingestion (Airflow→S3→Snowflake), transformation (dbt on Snowflake), pipeline orchestration in Airflow, DQ + notifications. → `sql/00-02`, `dbt/`, `airflow/`
-2. **Data Analytics**: warehouse performance, caching, Streamlit + AI. → `sql/04_analytics.sql`, `streamlit/`
-3. **Data Governance**: masking, row access, projection policies, DMF, lineage (Horizon). → `sql/03_governance.sql`, `docs/SESSION3_GOVERNANCE_LINEAGE.md`
-4. **Conversational AI**: Cortex Analyst + Search + Snowflake Intelligence. → `sql/06_cortex_ai.sql`
-5. **ML with Cortex Code** (bonus): AI-assisted credit-scoring ML via prompting. → `docs/SESSION5_CORTEX_CODE.md`
+1. **Data Engineering** (focus): ingestion (Airflow→S3→Snowflake), transformation (dbt on Snowflake), pipeline orchestration in Airflow, DQ + notifications. → [guide](guides/GUIDE_SESSION1_DATA_ENGINEERING.md)
+2. **Data Analytics + build Streamlit with AI**: warehouse performance, caching, AI-built dashboard. → [guide](guides/GUIDE_SESSION2_ANALYTICS.md)
+3. **Data Governance**: masking, row access, projection policies, DMF, lineage (Horizon). → [guide](guides/GUIDE_SESSION3_GOVERNANCE.md)
+4. **Conversational AI**: Cortex Analyst + Search + Snowflake Intelligence. → [guide](guides/GUIDE_SESSION6_CONVERSATIONAL_AI.md)
+5. **ML with Cortex Code** (bonus): AI-assisted credit-scoring ML via prompting. → [guide](guides/GUIDE_SESSION5_CORTEX_CODE.md)
 
-➡️ Full instructor walkthrough: **[DEMO_GUIDANCE.md](DEMO_GUIDANCE.md)**
+➡️ Start here: **[DEMO_GUIDANCE.md](DEMO_GUIDANCE.md)** (beginner-friendly, step-by-step, Bahasa Indonesia)
