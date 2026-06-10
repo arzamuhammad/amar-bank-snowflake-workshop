@@ -68,7 +68,7 @@ brew install astro
 **Opsi 1 — UI:** Admin → Connections → +
 - Connection Id: `snowflake_default`
 - Connection Type: `Snowflake`
-- Account: `<YOUR_SNOWFLAKE_ACCOUNT>` (atau akun Anda)
+- Account: `<YOUR_SNOWFLAKE_ACCOUNT>` (format `ORG-ACCOUNT`, isi sesuai akun Anda)
 - Login: `<user>`
 - Schema: `BRONZE`, Database: `AMAR_WORKSHOP`, Warehouse: `AMAR_WORKSHOP_WH`, Role: `AMAR_DATA_ENGINEER`
 - Extra (key-pair):

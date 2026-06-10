@@ -12,8 +12,8 @@ amar_workshop:
   outputs:
     dev:
       type: snowflake
-      account: "{{ env_var('DBT_ACCOUNT', '<YOUR_SNOWFLAKE_ACCOUNT>') }}"
-      user: "{{ env_var('DBT_USER', '<YOUR_USER>') }}"
+      account: "{{ env_var('DBT_ACCOUNT') }}"
+      user: "{{ env_var('DBT_USER') }}"
       authenticator: snowflake_jwt
       private_key_path: "{{ env_var('DBT_PRIVATE_KEY_PATH', '') }}"
       role: "{{ env_var('DBT_ROLE', 'AMAR_DATA_ENGINEER') }}"
