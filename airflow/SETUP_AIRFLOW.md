@@ -177,15 +177,21 @@ astro dev run connections add snowflake_default \
 
 ---
 
-## D. Deploy dbt Project ke Snowflake (sekali, sebelum DAG transform)
+## D. dbt Project harus sudah ter-deploy ke Snowflake
 
-DAG `amar_pipeline_end_to_end` memanggil `EXECUTE DBT PROJECT`, jadi project dbt
-harus sudah ter-deploy sebagai object Snowflake:
+DAG `amar_pipeline_end_to_end` memanggil `EXECUTE DBT PROJECT`, jadi **DBT PROJECT object**
+harus sudah ada di Snowflake.
+
+**Cara utama (workshop):** deploy lewat **Snowflake Workspace (UI)** — lihat
+`../guides/GUIDE_SESSION1_DATA_ENGINEERING.md` **LAB 2**. Verifikasi:
+```sql
+SHOW DBT PROJECTS IN SCHEMA AMAR_WORKSHOP.SILVER;
+```
+
+**Alternatif (terminal):** pakai Snowflake CLI — lihat `../guides/GUIDE_SNOWCLI_SETUP.md`:
 ```bash
 cd ../dbt
-snow dbt deploy AMAR_WORKSHOP --database AMAR_WORKSHOP --schema SILVER
-# verifikasi:
-snow sql -q "SHOW DBT PROJECTS IN SCHEMA AMAR_WORKSHOP.SILVER;"
+snow dbt deploy AMAR_WORKSHOP --database AMAR_WORKSHOP --schema SILVER -c amar
 ```
 
 ---

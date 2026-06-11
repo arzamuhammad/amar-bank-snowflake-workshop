@@ -1,19 +1,18 @@
-# profiles.yml — used for LOCAL dbt runs and as reference for
-# "dbt Projects on Snowflake" (snow dbt deploy).
+# profiles.yml — untuk dbt Projects on Snowflake (Workspace) & dev lokal.
 #
-# For local dev, set env vars (do NOT commit secrets):
-#   export DBT_ACCOUNT=... DBT_USER=... DBT_ROLE=AMAR_DATA_ENGINEER
-#   export DBT_PRIVATE_KEY_PATH=~/.ssh/snowflake_key.p8   (key-pair auth)
-#
-# When deployed as a dbt Project on Snowflake, Snowflake supplies the
-# connection; this file is used as the project's profile definition.
+# CATATAN PENTING:
+# - Di Snowflake Workspace / DBT PROJECT object, KONEKSI DIURUS OLEH SNOWFLAKE
+#   (pakai role/warehouse sesi Anda). Nilai account/user/authenticator di bawah
+#   DIABAIKAN oleh platform — diberi default agar file selalu ter-render.
+# - Untuk dbt-core LOKAL (opsional), set env var:
+#     export DBT_ACCOUNT=... DBT_USER=... DBT_PRIVATE_KEY_PATH=~/snowflake_key.p8
 amar_workshop:
   target: dev
   outputs:
     dev:
       type: snowflake
-      account: "{{ env_var('DBT_ACCOUNT') }}"
-      user: "{{ env_var('DBT_USER') }}"
+      account: "{{ env_var('DBT_ACCOUNT', 'managed_by_snowflake') }}"
+      user: "{{ env_var('DBT_USER', 'managed_by_snowflake') }}"
       authenticator: snowflake_jwt
       private_key_path: "{{ env_var('DBT_PRIVATE_KEY_PATH', '') }}"
       role: "{{ env_var('DBT_ROLE', 'AMAR_DATA_ENGINEER') }}"

@@ -1,283 +1,212 @@
-# Session 1 — Data Engineering (Versi Sangat Detail untuk Pemula)
+# Session 1 — Data Engineering (3 LAB Bertahap, untuk Pemula)
 
-> Kalau Anda belum pernah pakai Snowflake **maupun** Airflow, baca halaman ini pelan-pelan
-> dari atas. Jangan loncat. Setiap istilah dijelaskan dengan analogi.
+> Dibuat **bertahap** supaya mudah: **LAB 1** load data manual (COPY INTO) → **LAB 2** bangun
+> transformasi dbt di Snowflake Workspace → **LAB 3** gabungkan semua jadi pipeline otomatis di Airflow.
+> Baca pelan-pelan dari atas, jangan loncat.
 
-🎯 **Tujuan akhir:** data Amar Bank mengalir otomatis:
-**file di S3 → masuk Snowflake (mentah) → dirapikan → siap dipakai bisnis**, dan semua
-itu dijalankan oleh **Airflow** hanya dengan sekali klik.
+🎯 **Tujuan akhir:** memahami tiap potongan dulu (LAB 1 & 2 manual), baru menggabungkannya jadi
+pipeline otomatis (LAB 3).
 
 ---
 
-## 0. PETA BESAR — pahami ini dulu (5 menit)
+## PETA BESAR (baca dulu — 3 menit)
 
-Ada **3 "pemain"** dalam workshop ini. Bayangkan seperti dapur restoran:
+3 "pemain" seperti dapur restoran:
+| Pemain | Analogi | Perannya |
+|--------|---------|----------|
+| **Snowflake** | Dapur + gudang | Tempat data disimpan & semua pengolahan terjadi |
+| **dbt** | Buku resep | Resep SQL untuk mengubah data mentah → rapi |
+| **Airflow** | Kepala koki | Mengatur urutan & menyuruh Snowflake bekerja (baru dipakai di LAB 3) |
 
-| Pemain | Analogi | Perannya | Jalan di mana? |
-|--------|---------|----------|----------------|
-| **Snowflake** | Dapur + gudang bahan | Tempat data disimpan & semua pekerjaan berat (COPY, transform) benar-benar dikerjakan | Cloud |
-| **dbt** | Buku resep masakan | Kumpulan "resep" SQL untuk mengubah data mentah jadi data rapi | File di folder `dbt/` (dikirim ke Snowflake) |
-| **Airflow** | Kepala koki / mandor | Mengatur **urutan** pekerjaan & menyuruh Snowflake mengerjakannya, lalu memantau | Laptop Anda (via Docker) |
-
-**Hal paling penting yang sering bikin bingung:**
-> Airflow **tidak** mengolah data sendiri. Airflow hanya **menyuruh** Snowflake:
-> "Hei Snowflake, jalankan COPY ini", lalu "jalankan transformasi dbt", lalu "cek kualitas".
-> Semua pengolahan terjadi **di dalam Snowflake**. Airflow cuma sang pengatur.
-
-**Gambaran alur (yang akan Anda jalankan):**
 ```
-            ┌─────────────── AIRFLOW (di laptop, sang pengatur) ───────────────┐
-            │  Trigger 1x → suruh Snowflake kerjakan langkah 1,2,3,4 berurutan  │
-            └─────────────────────────────┬─────────────────────────────────────┘
-                                           │  (mengirim perintah SQL)
-                                           ▼
- S3 (file CSV) ──①COPY──► Snowflake BRONZE ──②dbt──► SILVER ──③dbt──► GOLD ──④cek kualitas
+LAB 1 (manual)         LAB 2 (manual, di Snowflake Workspace)        LAB 3 (otomatis, Airflow)
+S3 ──COPY INTO──► BRONZE   BRONZE ──dbt──► SILVER ──dbt──► GOLD       COPY INTO → EXECUTE DBT PROJECT → DQ
 ```
-
-**Diagram alur DAG (versi gambar):**
 
 ![Airflow pipeline flow](../diagrams/airflow_pipeline_flow.png)
 
----
-
-## 1. APA YANG HARUS DISIAPKAN DULU (sekali saja)
-
-Sebelum menyentuh Airflow, ada beberapa hal yang dipasang **sekali** oleh instruktur.
-Ini ibarat menyiapkan dapur sebelum koki mulai bekerja.
-
-### Daftar persiapan & DI MANA dijalankan
-
-| # | Yang disiapkan | Caranya | Di mana |
-|---|----------------|---------|---------|
-| A | Database, schema, warehouse, file format | jalankan `sql/00_setup.sql` | **Snowflake** (Snowsight worksheet) |
-| B | Upload 5 file CSV ke bucket S3 | upload manual | **AWS S3** |
-| C | Stage + tabel Bronze kosong | jalankan bagian CREATE di `sql/01_ingestion.sql` | **Snowflake** |
-| D | Prosedur cek kualitas (`SP_DQ_GATE`) | jalankan `sql/02_dq_checks.sql` | **Snowflake** |
-| E | "Resep" dbt dikirim ke Snowflake | `snow dbt deploy ...` (lihat bagian 3) | **Terminal** |
-| F | Airflow dinyalakan di laptop | `astro dev start` (lihat bagian 2) | **Terminal** |
-| G | Airflow dikasih "kunci" ke Snowflake | tambah Connection (lihat bagian 2) | **Airflow UI** |
-
-> 💡 Catatan: langkah A, C, D itu kita jalankan **manual sekali** supaya objeknya ada.
-> Nanti, **Airflow** yang akan menjalankan bagian COPY (isi tabel) & transformasi secara
-> berulang/otomatis. Jadi: *struktur* dibuat manual sekali, *pengisian data* diotomasi Airflow.
->
-> ❓ **"File `01_ingestion.sql` ada COPY INTO-nya juga — buat apa kalau Airflow yang isi?"**
-> File itu dibagi 2: **BAGIAN 1** = CREATE stage + tabel (WAJIB manual sekali, karena tabel
-> harus ada dulu sebelum Airflow bisa mengisi). **BAGIAN 2** = COPY INTO yang **OPSIONAL** —
-> hanya untuk belajar/uji manual atau kalau tidak pakai Airflow. **Kalau pakai Airflow,
-> jalankan BAGIAN 1 saja; biarkan Airflow yang menjalankan COPY INTO.**
+**Prasyarat umum:** Session 0 selesai (sudah jalankan `sql/00_setup.sql` → DB/schema/warehouse ada).
 
 ---
 
-## 2. AIRFLOW — DIJELASKAN PELAN-PELAN
+# LAB 1 — Load Data S3 → Snowflake dengan COPY INTO (standard)
 
-### 2.1 Apa itu Airflow, DAG, dan kenapa "sudah ada job"?
+🎯 **Tujuan:** memahami cara paling dasar memasukkan file dari S3 ke tabel Snowflake, **manual**.
 
-- **Airflow** = aplikasi pengatur pipeline. Punya tampilan web (UI).
-- **DAG** = singkatan dari *Directed Acyclic Graph*. Anggap saja **DAG = satu "pipeline" / "job"** =
-  selembar resep berisi urutan langkah (task) yang harus dijalankan.
-- **Bagaimana DAG dibuat?** DAG itu sebenarnya **file Python** di dalam folder `airflow/dags/`.
+### Konsep (1 menit)
+- **Stage** = "pintu" antara file S3 & Snowflake.
+- **File Format** = aturan baca file (CSV pakai header, pemisah koma).
+- **COPY INTO** = perintah menyalin isi file ke tabel.
+- **BRONZE** = data mentah apa adanya.
 
-> ❓ **"Kenapa pas saya buka Airflow, job-nya sudah ada?"**
-> Karena di repo ini kita **sudah menyiapkan** 2 file DAG:
-> - `airflow/dags/dag_ingest_s3_to_snowflake.py`
-> - `airflow/dags/dag_pipeline_end_to_end.py`
->
-> Saat Airflow menyala, ia **otomatis membaca semua file** di folder `dags/` dan
-> menampilkannya sebagai job di UI. Jadi Anda **tidak perlu membuat job dari nol** —
-> sudah kami siapkan. Yang Anda lakukan hanya **menyalakan & menjalankannya.**
-
-Dua job (DAG) yang tersedia:
-
-| Nama DAG di UI | Isinya | Untuk apa |
-|----------------|--------|-----------|
-| `amar_ingest_s3_to_snowflake` | hanya langkah COPY (5 task) | latihan pertama yang simpel: isi tabel Bronze |
-| `amar_pipeline_end_to_end` | COPY → dbt snapshot → dbt build → cek kualitas | pipeline penuh end-to-end |
-
-### 2.2 Menyalakan Airflow
-
-🎯 **Tujuan:** menghidupkan Airflow di laptop Anda.
-
-👉 **Langkah:** buka terminal, masuk ke folder `airflow`, lalu:
-```bash
-cd airflow
-astro dev start
+### Langkah 1.1 — Buat struktur (stage + tabel)
+👉 Buka `sql/01_ingestion.sql`. Ganti placeholder `<<S3_BUCKET>>` & `<<S3_PREFIX>>` sesuai bucket Anda.
+Jalankan **BAGIAN 1** (CREATE STAGE + CREATE TABLE).
+```sql
+LIST @BRONZE.STG_S3_AMAR;   -- cek file kebaca
 ```
-Tunggu beberapa menit (Docker membangun & menyalakan container).
+👀 **Yang harus dilihat:** daftar file `customers.csv`, `loans.csv`, dst. **Artinya Snowflake bisa "melihat" file di S3.**
 
-👀 **Yang harus dilihat:** di akhir muncul **URL Airflow UI** (mis. `http://localhost:8080`)
-dan kredensial `admin` / `admin`. Buka URL itu di browser → login.
+### Langkah 1.2 — COPY INTO (hands-on inti LAB ini)
+👉 Jalankan **BAGIAN 2** (5 perintah COPY INTO) di file yang sama.
+```sql
+SELECT 'RAW_CUSTOMERS' t, COUNT(*) n FROM BRONZE.RAW_CUSTOMERS
+UNION ALL SELECT 'RAW_LOANS', COUNT(*) FROM BRONZE.RAW_LOANS;
+```
+👀 **Yang harus dilihat:** tiap COPY berstatus `LOADED`; customers 5.000, loans 8.000.
+**🎉 Anda baru saja memuat data S3 ke Snowflake secara manual.**
 
-👀 Di halaman utama (**DAGs**), Anda akan melihat **2 job** di atas tadi. **Itu wajar dan benar** —
-karena file-nya sudah ada di `dags/`.
+> 💡 Di LAB ini kita COPY manual untuk **belajar**. Nanti di **LAB 3**, COPY INTO ini
+> dijalankan **otomatis oleh Airflow** — Anda tidak mengetik ulang.
 
-> Untuk **mematikan** Airflow nanti: `astro dev stop`. Reset total: `astro dev kill`.
+### (Opsional) Demo Schema Evolution
+👉 Jalankan blok berkomentar yang me-load `customers_v2_schemadrift.csv` (punya kolom baru).
+👀 Kolom baru muncul otomatis tanpa error.
 
-### 2.3 Menambah Connection (KENAPA ini perlu?)
-
-🎯 **Tujuan:** memberi Airflow "alamat + kunci" agar bisa masuk & menyuruh Snowflake.
-
-> ❓ **"Kenapa harus menambah connection?"**
-> Airflow berjalan di laptop Anda, Snowflake ada di cloud. Keduanya **belum saling kenal**.
-> *Connection* = catatan berisi **alamat akun Snowflake + cara login** (pakai key-pair RSA).
-> Tanpa ini, saat job dijalankan Airflow tidak tahu harus menghubungi Snowflake yang mana
-> dan akan gagal "tidak ada koneksi".
-
-👉 **Langkah (lewat UI):**
-1. Di Airflow UI, menu atas **Admin → Connections**.
-2. Klik tombol **+** (Add a new record).
-3. Isi:
-   - **Connection Id:** `snowflake_default`  ← harus persis ini (dipakai di DAG)
-   - **Connection Type:** `Snowflake`
-   - **Account:** `<YOUR_SNOWFLAKE_ACCOUNT>` (format `ORG-ACCOUNT`)
-   - **Login:** `<username Snowflake Anda>`
-   - **Schema:** `BRONZE`
-   - **Warehouse:** `AMAR_WORKSHOP_WH`
-   - **Database:** `AMAR_WORKSHOP`
-   - **Role:** `AMAR_DATA_ENGINEER`
-   - **Extra:** (untuk key-pair)
-     ```json
-     {"private_key_file": "/usr/local/airflow/include/snowflake_key.p8"}
-     ```
-4. Pastikan file private key Anda ada di `airflow/include/snowflake_key.p8`
-   (path di Extra adalah lokasi file **di dalam container**, bukan di laptop).
-5. Klik **Save**. (Opsional: klik **Test** untuk cek koneksi.)
-
-👀 **Yang harus dilihat:** connection `snowflake_default` muncul di daftar. Kalau di-Test,
-muncul pesan sukses. **Sekarang Airflow sudah bisa "bicara" ke Snowflake.**
-
-> 🔑 Cara membuat key-pair RSA ada di `SETUP_AIRFLOW.md` (Windows/macOS/Linux),
-> dan public key-nya didaftarkan ke user Snowflake (`ALTER USER ... SET RSA_PUBLIC_KEY=...`).
+✅ **Selesai LAB 1.** Tabel BRONZE sudah terisi.
 
 ---
 
-## 3. "DEPLOY DBT" — KENAPA & APA BEDANYA dengan Airflow?
+# LAB 2 — Bangun dbt Project di Snowflake Workspace (UI), lalu Deploy
 
-> ❓ **"Tadi kok tiba-tiba disuruh deploy? Deploy apa?"**
+🎯 **Tujuan:** mengubah data BRONZE → SILVER → GOLD memakai **dbt yang berjalan DI DALAM Snowflake**,
+dibuat lewat **Workspace** (web IDE di Snowsight) — **tanpa** install apa pun, **tanpa** `snow dbt deploy`.
 
-Ini bagian yang paling sering bikin bingung. Mari pelan-pelan.
+### Konsep (2 menit)
+- **dbt** = alat transformasi pakai SQL + test + dokumentasi.
+- **Workspace** = web IDE di Snowsight untuk membuat/menjalankan dbt project langsung di Snowflake
+  (bisa connect Git atau upload file).
+- **DBT PROJECT object** = hasil "deploy" dari Workspace → objek di Snowflake yang bisa dijalankan
+  dengan `EXECUTE DBT PROJECT`. **Inilah yang nanti dipanggil Airflow di LAB 3.**
 
-- Folder `dbt/` di repo berisi **"resep" transformasi** (file-file SQL: staging, marts, dll).
-- Resep ini ada di **laptop Anda**, sedangkan kita ingin transformasi **berjalan di dalam Snowflake**.
-- Jadi resep itu harus **"dikirim/didaftarkan" ke Snowflake** terlebih dulu — **sekali saja**.
-  Proses inilah yang disebut **deploy dbt project**.
-- Setelah ter-deploy, Snowflake punya objek bernama "dbt project" yang bisa dijalankan dengan
-  perintah `EXECUTE DBT PROJECT`. Nantinya **Airflow yang memanggil perintah ini.**
+> Alur resmi dbt-on-Snowflake: project valid → `dbt deps` → **deploy** (buat DBT PROJECT object)
+> → `EXECUTE DBT PROJECT`. (Sumber: docs.snowflake.com/.../dbt-projects-on-snowflake)
 
-📌 **Bedakan dua hal ini (sering tertukar):**
-| Istilah | Artinya | Frekuensi |
-|---------|---------|-----------|
-| `astro dev start` | Menyalakan **Airflow** di laptop | tiap mau pakai |
-| `snow dbt deploy` | Mengirim **resep dbt** ke Snowflake | **sekali** (atau saat resep berubah) |
+### Langkah 2.1 — Buka Workspaces & buat dbt project
+👉 **Langkah:**
+1. Snowsight → menu kiri **Projects → Workspaces**.
+2. Klik **+ Add new** → pilih **dbt Project** (atau "From Git" bila ingin connect repo GitHub).
+   Untuk workshop, pilih buat baru / upload.
+3. Beri nama workspace, pilih **Database `AMAR_WORKSHOP`**, **Schema `SILVER`**, **Warehouse `AMAR_WORKSHOP_WH`**, **Role `AMAR_DATA_ENGINEER`**.
 
-🎯 **Tujuan:** mengirim resep dbt ke Snowflake.
+👀 **Yang harus dilihat:** editor Workspace terbuka (kiri = daftar file, kanan = editor).
 
-👉 **Langkah (di terminal, sekali saja):**
-```bash
-cd ../dbt          # dari folder airflow, pindah ke folder dbt
-snow dbt deploy AMAR_WORKSHOP --database AMAR_WORKSHOP --schema SILVER
+### Langkah 2.2 — Masukkan file dbt project kita
+👉 Pilih salah satu:
+- **(A) Upload:** upload isi folder `dbt/` repo ini (`dbt_project.yml`, `profiles.yml`,
+  `models/`, `snapshots/`). **atau**
+- **(B) From Git:** hubungkan repo `https://github.com/arzamuhammad/amar-bank-snowflake-workshop`
+  dan arahkan ke folder `dbt/`.
+
+👀 **Yang harus dilihat:** struktur file dbt muncul: `models/staging/*.sql`, `models/gold/*.sql`,
+`snapshots/`, `dbt_project.yml`.
+
+> ℹ️ Di Workspace, **koneksi diurus Snowflake sendiri** (pakai role/warehouse Anda) — jadi
+> `profiles.yml` tidak perlu account/user. Nilai database/schema/warehouse di `profiles.yml`
+> sudah diisi untuk Amar.
+
+### Langkah 2.3 — Install dependency & jalankan dbt (uji di Workspace)
+👉 Di toolbar Workspace, jalankan perintah dbt berurutan (ada tombol/CLI dbt di Workspace):
 ```
+dbt deps        # pasang dependency (project ini tanpa package eksternal → cepat/no-op)
+dbt build       # bangun staging → marts + jalankan semua test
+dbt snapshot    # bangun DIM_CUSTOMERS_SCD2 (riwayat perubahan)
+```
+👀 **Yang harus dilihat:** log dbt: model `stg_customers`, `stg_loans`, lalu `mart_loan_performance`,
+`mart_customer_360` dibuat; test **PASS**. Cek di worksheet:
+```sql
+SELECT * FROM AMAR_WORKSHOP.GOLD.MART_LOAN_PERFORMANCE LIMIT 5;
+```
+**🎉 Transformasi berhasil — dan ini berjalan di dalam Snowflake.**
 
-👀 **Yang harus dilihat:** pesan sukses. Verifikasi di Snowflake:
+### Langkah 2.4 — DEPLOY jadi DBT PROJECT object
+🎯 Supaya bisa dipanggil otomatis (oleh Airflow di LAB 3), kita **deploy** project dari Workspace.
+
+👉 **Langkah:** di Workspace, klik tombol **Deploy** (atau **Create dbt project object**),
+arahkan ke **Database `AMAR_WORKSHOP`, Schema `SILVER`**, nama objek **`AMAR_WORKSHOP`**.
+
+👀 **Yang harus dilihat:** muncul DBT PROJECT object. Verifikasi di worksheet:
 ```sql
 SHOW DBT PROJECTS IN SCHEMA AMAR_WORKSHOP.SILVER;
+-- coba jalankan langsung:
+EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_WORKSHOP ARGS='build';
 ```
-muncul 1 baris `AMAR_WORKSHOP`. **Resep dbt sekarang sudah "hidup" di dalam Snowflake.**
+👀 Muncul 1 baris project, dan `EXECUTE DBT PROJECT` berjalan. **Inilah yang akan dipanggil Airflow.**
+
+> 🔁 **Alternatif terminal** (kalau lebih suka CLI): `snow dbt deploy ...` — perlu `snow` CLI,
+> lihat [GUIDE_SNOWCLI_SETUP.md](GUIDE_SNOWCLI_SETUP.md). Tapi untuk workshop, **cara UI Workspace di atas sudah cukup.**
+
+✅ **Selesai LAB 2.** Sekarang ada: data Bronze (LAB 1) + transformasi dbt yang ter-deploy (LAB 2).
 
 ---
 
-## 4. MENJALANKAN PIPELINE (akhirnya!)
+# LAB 3 — Bangun Data Pipeline: gabungkan semua dengan Airflow
 
-Setelah semua siap (objek Snowflake ada, dbt ter-deploy, Airflow nyala + connection ada),
-sekarang tinggal **menjalankan job**.
+🎯 **Tujuan:** menyatukan LAB 1 (COPY INTO) + LAB 2 (EXECUTE DBT PROJECT) + cek kualitas menjadi
+**satu pipeline otomatis** yang dijalankan Airflow sekali klik.
 
-### 4.1 Latihan pertama — job ingest saja
+### Langkah 3.1 — Pasang prasyarat
+1. **Airflow lokal** sudah menyala → lihat `../airflow/SETUP_AIRFLOW.md` (`astro dev start`).
+2. **Snowflake CLI (`snow`)** terpasang & koneksi teruji → ikuti
+   **[GUIDE_SNOWCLI_SETUP.md](GUIDE_SNOWCLI_SETUP.md)** (ini bagian yang sering error — sudah dibuat detail).
+   - Verifikasi: `snow connection test -c amar` harus `Status OK`.
+3. **DBT PROJECT object sudah ada** dari LAB 2 (cek `SHOW DBT PROJECTS ...`).
 
-🎯 **Tujuan:** memahami satu bagian terkecil dulu (mengisi tabel Bronze dari S3).
+### Langkah 3.2 — Beri Airflow "kunci" ke Snowflake (Connection)
+> Airflow di laptop, Snowflake di cloud — belum saling kenal. Connection = alamat + kunci.
 
-👉 **Langkah:**
-1. Di Airflow UI, halaman **DAGs**, cari `amar_ingest_s3_to_snowflake`.
-2. Nyalakan **toggle** di kiri nama DAG (kalau masih abu-abu/off).
-3. Klik nama DAG → tab **Graph** (lihat kotak-kotak task: `copy_customers`, `copy_loans`, dst).
-4. Klik tombol **▶ Trigger** (kanan atas).
+👉 Airflow UI → **Admin → Connections → +**:
+- **Connection Id:** `snowflake_default` (harus persis ini)
+- **Connection Type:** `Snowflake`
+- **Account:** `<YOUR_SNOWFLAKE_ACCOUNT>` • **Login:** `<username>`
+- **Database:** `AMAR_WORKSHOP` • **Schema:** `BRONZE` • **Warehouse:** `AMAR_WORKSHOP_WH` • **Role:** `AMAR_DATA_ENGINEER`
+- **Extra:** `{"private_key_file": "/usr/local/airflow/include/snowflake_key.p8"}`
 
-👀 **Yang harus dilihat:**
-- Tiap kotak task berubah: **abu → kuning (sedang jalan) → hijau (sukses)**.
-- Klik salah satu kotak → **Logs** → Anda bisa lihat perintah `COPY INTO` yang dikirim ke
-  Snowflake & hasilnya (berapa baris dimuat).
-- Verifikasi di Snowflake:
-  ```sql
-  SELECT COUNT(*) FROM AMAR_WORKSHOP.BRONZE.RAW_CUSTOMERS;   -- harus 5000
-  ```
-**Artinya:** Airflow berhasil menyuruh Snowflake mengisi tabel. 🎉
+👀 Klik **Save** → (opsional **Test**) → muncul sukses.
 
-### 4.2 Pipeline penuh — end to end
-
-🎯 **Tujuan:** menjalankan seluruh alur sekali klik.
-
-👉 **Langkah:**
-1. Di DAGs, nyalakan & buka `amar_pipeline_end_to_end` → tab **Graph**.
-2. Perhatikan urutannya:
-   ```
-   ingest_bronze (5 COPY INTO)  →  execute_dbt_project_snapshot  →  execute_dbt_project_build  →  dq_gate
-   ```
-3. Klik **▶ Trigger**.
-
-👀 **Yang harus dilihat:** kotak menyala hijau berurutan dari kiri ke kanan. Tiap kotak:
-- `ingest_bronze` = isi Bronze (COPY INTO dari S3)
-- `execute_dbt_project_snapshot` = `EXECUTE DBT PROJECT ... ARGS='snapshot'` (riwayat SCD-2)
-- `execute_dbt_project_build` = `EXECUTE DBT PROJECT ... ARGS='build'` (bangun SILVER & GOLD)
-- `dq_gate` = cek kualitas data (panggil `SP_DQ_GATE`)
-
-> ✅ **Inilah pipeline lengkapnya:** dari **COPY INTO** sampai **EXECUTE DBT PROJECT** dalam
-> satu DAG. DAG `amar_ingest_s3_to_snowflake` (latihan pertama) hanya bagian COPY-nya saja;
-> DAG `amar_pipeline_end_to_end` inilah yang menyambung COPY → dbt → cek kualitas.
-
-Verifikasi hasil akhir di Snowflake:
-```sql
-SELECT * FROM AMAR_WORKSHOP.GOLD.MART_LOAN_PERFORMANCE LIMIT 10;
+### Langkah 3.3 — Jalankan pipeline penuh
+👉 Airflow UI → DAGs → buka **`amar_pipeline_end_to_end`** → tab **Graph**:
 ```
+ingest_bronze (5 × COPY INTO)
+        ↓
+execute_dbt_project_snapshot   →  EXECUTE DBT PROJECT ... ARGS='snapshot'
+        ↓
+execute_dbt_project_build      →  EXECUTE DBT PROJECT ... ARGS='build'
+        ↓
+dq_gate                        →  CALL SP_DQ_GATE()
+```
+Nyalakan toggle, klik **▶ Trigger**.
 
-> 💡 **Kenapa Airflow, bukan Snowflake Tasks?** Karena banyak tim DE memakai Airflow sebagai
-> **satu pengatur** untuk semua sistem (bukan hanya Snowflake). Jadwal, urutan, retry, dan
-> notifikasi terpusat di Airflow; Snowflake fokus jadi mesin pengolah.
+👀 **Yang harus dilihat:** kotak menyala hijau berurutan kiri→kanan. Klik task → **Logs** untuk
+lihat perintah yang dikirim ke Snowflake. **Inilah pipeline lengkap: COPY INTO → EXECUTE DBT PROJECT → DQ.**
+
+> 💡 **Kenapa Airflow, bukan Snowflake Tasks?** Banyak tim DE pakai Airflow sebagai **satu**
+> pengatur untuk semua sistem. Jadwal/urutan/retry/alert terpusat di Airflow; Snowflake jadi mesin pengolah.
+
+### Langkah 3.4 — Pantau & kalau gagal
+- **Grid view:** hijau=sukses, merah=gagal → klik → **Logs**.
+- Tabel troubleshooting:
+
+| Gejala | Solusi |
+|--------|--------|
+| Task merah: *No connection snowflake_default* | Connection belum dibuat / id salah → Langkah 3.2 |
+| Task merah: *authentication failed / JWT invalid* | Key-pair/akun → cek GUIDE_SNOWCLI_SETUP.md bagian D & F |
+| `execute_dbt_project_*` gagal: *DBT PROJECT not found* | Belum deploy di LAB 2 → ulangi Langkah 2.4 |
+| `copy_*` sukses tapi 0 rows | File belum di S3 / path stage salah → `LIST @BRONZE.STG_S3_AMAR;` |
 
 ---
 
-## 5. MEMANTAU & KALAU GAGAL
-
-👀 **Memantau:** klik DAG → tab **Grid**. Tiap kolom = satu kali run. Hijau=sukses, merah=gagal.
-Klik kotak merah → **Logs** untuk lihat pesan error.
-
-👀 **Retry otomatis:** DAG sudah diatur mencoba ulang (`retries`) bila gagal sementara.
-
-**Troubleshooting Airflow yang umum:**
-| Gejala | Penyebab & Solusi |
-|--------|-------------------|
-| Task merah, log: *"No connection: snowflake_default"* | Connection belum dibuat / id salah → ulangi bagian 2.3 |
-| Task merah, log: *authentication failed* | Key-pair salah / public key belum didaftarkan ke user Snowflake |
-| `dbt_build` gagal: *EXECUTE DBT PROJECT not found* | Belum `snow dbt deploy` → ulangi bagian 3 |
-| `copy_*` sukses tapi 0 rows | File belum diupload ke S3 / path stage salah → cek `LIST @BRONZE.STG_S3_AMAR;` |
-| DAG tidak muncul di UI | Pastikan Airflow sudah `astro dev start`; file ada di `airflow/dags/` |
-
----
-
-## 6. RINGKASAN URUTAN (cheat-sheet)
-
+## RINGKASAN URUTAN (cheat-sheet)
 ```
-SEKALI SAJA (persiapan):
-  1. Snowflake : jalankan 00_setup.sql               (DB/schema/WH/format)
-  2. S3        : upload data/*.csv ke bucket
-  3. Snowflake : jalankan bagian CREATE di 01_ingestion.sql (stage + tabel Bronze)
-  4. Snowflake : jalankan 02_dq_checks.sql            (buat SP_DQ_GATE)
-  5. Terminal  : snow dbt deploy ...                  (kirim resep dbt ke Snowflake)
-  6. Terminal  : cd airflow && astro dev start        (nyalakan Airflow)
-  7. Airflow UI: Admin → Connections → tambah snowflake_default
+LAB 1 (Snowflake worksheet):
+  - 00_setup.sql  →  01_ingestion.sql BAGIAN 1 (stage+tabel)  →  BAGIAN 2 (COPY INTO manual)
 
-TIAP MAU MENJALANKAN PIPELINE:
-  8. Airflow UI: nyalakan & Trigger DAG (ingest dulu, lalu end_to_end)
-  9. Airflow UI: pantau Graph/Grid + Logs
- 10. Snowflake : verifikasi GOLD.MART_* terisi
+LAB 2 (Snowsight Workspaces, UI):
+  - buat dbt project  →  upload/Git folder dbt/  →  dbt deps/build/snapshot  →  DEPLOY (DBT PROJECT object)
+
+LAB 3 (Airflow):
+  - astro dev start  →  pasang snow CLI (GUIDE_SNOWCLI_SETUP.md)  →  buat Connection snowflake_default
+  - Trigger DAG amar_pipeline_end_to_end  →  COPY INTO → EXECUTE DBT PROJECT → DQ
 ```
 
 ➡️ Lanjut ke **[Session 2 — Analytics + Build Streamlit pakai AI](GUIDE_SESSION2_ANALYTICS.md)**.

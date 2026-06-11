@@ -38,7 +38,7 @@ Airflow (local, Docker)              AWS S3 (public, workshop only)        Snowf
 ### 2. Snowflake
 - Account + role with privileges to create DB/schema/warehouse, stage, policies, DMFs, roles.
 - Warehouse `AMAR_WORKSHOP_WH` (created by `sql/00_setup.sql`).
-- **Snowflake CLI (`snow`)** for `snow dbt deploy`.
+- **Snowflake CLI (`snow`)** — optional, for verification / CLI deploy. Detailed setup: [guides/GUIDE_SNOWCLI_SETUP.md](guides/GUIDE_SNOWCLI_SETUP.md).
 - Key-pair public key registered on the Snowflake user (for Airflow + dbt).
 
 ### 3. AWS S3
@@ -96,14 +96,14 @@ python3 scripts/generate_data.py
 
 # 2) upload data/ to your public S3 bucket, then edit placeholders in sql/01_ingestion.sql
 
-# 3) in Snowflake (Snowsight or snow sql): run setup + ingestion + governance
-#    sql/00_setup.sql -> sql/01_ingestion.sql -> sql/03_governance.sql
+# 3) LAB 1 - in Snowflake (Snowsight): run setup + ingestion
+#    sql/00_setup.sql -> sql/01_ingestion.sql
 
-# 4) deploy dbt project to Snowflake
-cd dbt && snow dbt deploy AMAR_WORKSHOP --database AMAR_WORKSHOP --schema SILVER
+# 4) LAB 2 - build dbt in Snowflake Workspace (Snowsight UI), then Deploy the
+#    DBT PROJECT object. (No install needed.) See Session 1 guide LAB 2.
 
-# 5) run Airflow locally and trigger the pipeline DAG
-cd ../airflow && astro dev start   # UI: http://localhost:8080
+# 5) LAB 3 - run Airflow locally + create Connection, then trigger the pipeline DAG
+cd airflow && astro dev start      # UI shown by Astro (e.g. http://localhost:8080)
 ```
 
 ---
