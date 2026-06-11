@@ -128,49 +128,47 @@ CREATE OR REPLACE TABLE BRONZE.RAW_TRANSACTIONS (
 -- ## tanpa Airflow, atau untuk demo cepat satu kali.                  ##
 -- #####################################################################
 -- ---------------------------------------------------------------------
--- COPY INTO (CSV with header -> match by column name).
+-- COPY INTO via positional transform ($1,$2,...) + header-skip format.
+-- CATATAN: MATCH_BY_COLUMN_NAME TIDAK BOLEH dipakai bersama transform SELECT.
+-- Kita pakai posisi kolom (urutan kolom file = urutan di SELECT) + FF_CSV_NOHEADER
+-- (SKIP_HEADER=1) supaya bisa menyertakan METADATA$FILENAME -> _source_file.
 COPY INTO BRONZE.RAW_CUSTOMERS (customer_id, nik, npwp, full_name, gender, birth_date,
         province, city, segment, credit_score, monthly_income, phone, email, created_at, updated_at, _source_file)
   FROM (
-    SELECT $1:customer_id, $1:nik, $1:npwp, $1:full_name, $1:gender, $1:birth_date,
-           $1:province, $1:city, $1:segment, $1:credit_score, $1:monthly_income, $1:phone,
-           $1:email, $1:created_at, $1:updated_at, METADATA$FILENAME
+    SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, METADATA$FILENAME
     FROM @BRONZE.STG_S3_AMAR/customers.csv
   )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV)
-  MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER)
   ON_ERROR = CONTINUE;
 
 COPY INTO BRONZE.RAW_LOANS (loan_id, customer_id, product_type, plafond, tenor_months,
         interest_rate, disbursed_at, status, dpd, is_default, outstanding, updated_at, _source_file)
   FROM (
-    SELECT $1:loan_id, $1:customer_id, $1:product_type, $1:plafond, $1:tenor_months,
-           $1:interest_rate, $1:disbursed_at, $1:status, $1:dpd, $1:is_default,
-           $1:outstanding, $1:updated_at, METADATA$FILENAME
+    SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, METADATA$FILENAME
     FROM @BRONZE.STG_S3_AMAR/loans.csv
   )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER) ON_ERROR = CONTINUE;
 
 COPY INTO BRONZE.RAW_REPAYMENTS (repayment_id, loan_id, due_date, paid_date, amount_due, amount_paid, is_late, _source_file)
   FROM (
-    SELECT $1:repayment_id, $1:loan_id, $1:due_date, $1:paid_date, $1:amount_due, $1:amount_paid, $1:is_late, METADATA$FILENAME
+    SELECT $1, $2, $3, $4, $5, $6, $7, METADATA$FILENAME
     FROM @BRONZE.STG_S3_AMAR/repayments.csv
   )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER) ON_ERROR = CONTINUE;
 
 COPY INTO BRONZE.RAW_SAVINGS (account_id, customer_id, account_type, balance, interest_rate, opened_at, status, _source_file)
   FROM (
-    SELECT $1:account_id, $1:customer_id, $1:account_type, $1:balance, $1:interest_rate, $1:opened_at, $1:status, METADATA$FILENAME
+    SELECT $1, $2, $3, $4, $5, $6, $7, METADATA$FILENAME
     FROM @BRONZE.STG_S3_AMAR/savings.csv
   )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER) ON_ERROR = CONTINUE;
 
 COPY INTO BRONZE.RAW_TRANSACTIONS (txn_id, account_id, txn_type, channel, amount, txn_ts, _source_file)
   FROM (
-    SELECT $1:txn_id, $1:account_id, $1:txn_type, $1:channel, $1:amount, $1:txn_ts, METADATA$FILENAME
+    SELECT $1, $2, $3, $4, $5, $6, METADATA$FILENAME
     FROM @BRONZE.STG_S3_AMAR/transactions.csv
   )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER) ON_ERROR = CONTINUE;
 
 -- ---------------------------------------------------------------------
 -- DEMO: file formats (Parquet + semi-structured JSON)
@@ -184,9 +182,10 @@ COPY INTO BRONZE.RAW_TRANSACTIONS (txn_id, account_id, txn_type, channel, amount
 -- ALTER TABLE BRONZE.RAW_CUSTOMERS SET ENABLE_SCHEMA_EVOLUTION = TRUE;
 -- COPY INTO BRONZE.RAW_CUSTOMERS
 --   FROM @BRONZE.STG_S3_AMAR/customers_v2_schemadrift.csv
---   FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV)
+--   FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV)          -- PARSE_HEADER=TRUE
 --   MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE ON_ERROR = CONTINUE;
--- (new columns appear automatically; back-loaded rows are NULL)
+-- (schema evolution memakai MATCH_BY_COLUMN_NAME TANPA transform SELECT -> valid)
+-- (kolom baru muncul otomatis; baris lama jadi NULL)
 
 -- ---- Quick verification ----------------------------------------------
 SELECT 'RAW_CUSTOMERS' t, COUNT(*) n FROM BRONZE.RAW_CUSTOMERS
