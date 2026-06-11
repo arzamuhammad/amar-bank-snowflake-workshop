@@ -209,15 +209,19 @@ sekarang tinggal **menjalankan job**.
 1. Di DAGs, nyalakan & buka `amar_pipeline_end_to_end` → tab **Graph**.
 2. Perhatikan urutannya:
    ```
-   ingest_bronze (5 COPY)  →  dbt_snapshot_scd2  →  dbt_build  →  dq_gate
+   ingest_bronze (5 COPY INTO)  →  execute_dbt_project_snapshot  →  execute_dbt_project_build  →  dq_gate
    ```
 3. Klik **▶ Trigger**.
 
 👀 **Yang harus dilihat:** kotak menyala hijau berurutan dari kiri ke kanan. Tiap kotak:
-- `ingest_bronze` = isi Bronze (COPY)
-- `dbt_snapshot_scd2` = simpan riwayat perubahan nasabah (SCD-2)
-- `dbt_build` = bangun SILVER & GOLD (Snowflake menjalankan `EXECUTE DBT PROJECT`)
+- `ingest_bronze` = isi Bronze (COPY INTO dari S3)
+- `execute_dbt_project_snapshot` = `EXECUTE DBT PROJECT ... ARGS='snapshot'` (riwayat SCD-2)
+- `execute_dbt_project_build` = `EXECUTE DBT PROJECT ... ARGS='build'` (bangun SILVER & GOLD)
 - `dq_gate` = cek kualitas data (panggil `SP_DQ_GATE`)
+
+> ✅ **Inilah pipeline lengkapnya:** dari **COPY INTO** sampai **EXECUTE DBT PROJECT** dalam
+> satu DAG. DAG `amar_ingest_s3_to_snowflake` (latihan pertama) hanya bagian COPY-nya saja;
+> DAG `amar_pipeline_end_to_end` inilah yang menyambung COPY → dbt → cek kualitas.
 
 Verifikasi hasil akhir di Snowflake:
 ```sql

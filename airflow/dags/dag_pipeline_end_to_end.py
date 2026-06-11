@@ -118,8 +118,11 @@ with DAG(
         SQLExecuteQueryOperator(task_id="copy_savings", sql=COPY_SAVINGS, **common)
         SQLExecuteQueryOperator(task_id="copy_transactions", sql=COPY_TRANSACTIONS, **common)
 
-    dbt_build = SQLExecuteQueryOperator(task_id="dbt_build", sql=DBT_BUILD, **common)
-    dbt_snapshot = SQLExecuteQueryOperator(task_id="dbt_snapshot_scd2", sql=DBT_SNAPSHOT, **common)
+    dbt_run = SQLExecuteQueryOperator(task_id="execute_dbt_project_build", sql=DBT_BUILD, **common)
+    dbt_snapshot = SQLExecuteQueryOperator(task_id="execute_dbt_project_snapshot", sql=DBT_SNAPSHOT, **common)
     dq_gate = SQLExecuteQueryOperator(task_id="dq_gate", sql=DQ_GATE, **common)
 
-    ingest >> dbt_snapshot >> dbt_build >> dq_gate
+    # Data pipeline end-to-end:
+    # COPY INTO (Bronze)  ->  EXECUTE DBT PROJECT snapshot (SCD-2)
+    #                     ->  EXECUTE DBT PROJECT build (Silver + Gold)  ->  DQ gate
+    ingest >> dbt_snapshot >> dbt_run >> dq_gate
