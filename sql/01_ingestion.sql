@@ -45,7 +45,7 @@ CREATE OR REPLACE STAGE BRONZE.STG_S3_AMAR
 LIST @BRONZE.STG_S3_AMAR;
 
 -- ---------------------------------------------------------------------
--- Bronze tables (raw landing). _LOADED_AT + _SOURCE_FILE for lineage.
+-- Bronze tables (raw landing). _LOADED_AT terisi otomatis (DEFAULT) untuk audit.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE TABLE BRONZE.RAW_CUSTOMERS (
     customer_id    STRING,
@@ -63,8 +63,7 @@ CREATE OR REPLACE TABLE BRONZE.RAW_CUSTOMERS (
     email          STRING,
     created_at     TIMESTAMP_NTZ,
     updated_at     TIMESTAMP_NTZ,
-    _loaded_at     TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
-    _source_file   STRING
+    _loaded_at     TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
 
 CREATE OR REPLACE TABLE BRONZE.RAW_LOANS (
@@ -80,8 +79,7 @@ CREATE OR REPLACE TABLE BRONZE.RAW_LOANS (
     is_default    NUMBER,
     outstanding   NUMBER,
     updated_at    TIMESTAMP_NTZ,
-    _loaded_at    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
-    _source_file  STRING
+    _loaded_at    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
 
 CREATE OR REPLACE TABLE BRONZE.RAW_REPAYMENTS (
@@ -92,8 +90,7 @@ CREATE OR REPLACE TABLE BRONZE.RAW_REPAYMENTS (
     amount_due   NUMBER,
     amount_paid  NUMBER,
     is_late      NUMBER,
-    _loaded_at   TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
-    _source_file STRING
+    _loaded_at   TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
 
 CREATE OR REPLACE TABLE BRONZE.RAW_SAVINGS (
@@ -104,8 +101,7 @@ CREATE OR REPLACE TABLE BRONZE.RAW_SAVINGS (
     interest_rate FLOAT,
     opened_at     DATE,
     status        STRING,
-    _loaded_at    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
-    _source_file  STRING
+    _loaded_at    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
 
 CREATE OR REPLACE TABLE BRONZE.RAW_TRANSACTIONS (
@@ -115,8 +111,7 @@ CREATE OR REPLACE TABLE BRONZE.RAW_TRANSACTIONS (
     channel      STRING,
     amount       NUMBER,
     txn_ts       TIMESTAMP_NTZ,
-    _loaded_at   TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
-    _source_file STRING
+    _loaded_at   TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
 
 -- #####################################################################
@@ -128,47 +123,33 @@ CREATE OR REPLACE TABLE BRONZE.RAW_TRANSACTIONS (
 -- ## tanpa Airflow, atau untuk demo cepat satu kali.                  ##
 -- #####################################################################
 -- ---------------------------------------------------------------------
--- COPY INTO via positional transform ($1,$2,...) + header-skip format.
--- CATATAN: MATCH_BY_COLUMN_NAME TIDAK BOLEH dipakai bersama transform SELECT.
--- Kita pakai posisi kolom (urutan kolom file = urutan di SELECT) + FF_CSV_NOHEADER
--- (SKIP_HEADER=1) supaya bisa menyertakan METADATA$FILENAME -> _source_file.
-COPY INTO BRONZE.RAW_CUSTOMERS (customer_id, nik, npwp, full_name, gender, birth_date,
-        province, city, segment, credit_score, monthly_income, phone, email, created_at, updated_at, _source_file)
-  FROM (
-    SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, METADATA$FILENAME
-    FROM @BRONZE.STG_S3_AMAR/customers.csv
-  )
+-- COPY INTO standar (tanpa transform). File header di-skip oleh FF_CSV_NOHEADER.
+-- Kolom file dipetakan ke kolom tabel BERDASARKAN POSISI; kolom _loaded_at terisi
+-- otomatis dari DEFAULT (ERROR_ON_COLUMN_COUNT_MISMATCH=FALSE mengizinkan selisih kolom).
+COPY INTO BRONZE.RAW_CUSTOMERS
+  FROM @BRONZE.STG_S3_AMAR/customers.csv
   FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER)
   ON_ERROR = CONTINUE;
 
-COPY INTO BRONZE.RAW_LOANS (loan_id, customer_id, product_type, plafond, tenor_months,
-        interest_rate, disbursed_at, status, dpd, is_default, outstanding, updated_at, _source_file)
-  FROM (
-    SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, METADATA$FILENAME
-    FROM @BRONZE.STG_S3_AMAR/loans.csv
-  )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER) ON_ERROR = CONTINUE;
+COPY INTO BRONZE.RAW_LOANS
+  FROM @BRONZE.STG_S3_AMAR/loans.csv
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR = CONTINUE;
 
-COPY INTO BRONZE.RAW_REPAYMENTS (repayment_id, loan_id, due_date, paid_date, amount_due, amount_paid, is_late, _source_file)
-  FROM (
-    SELECT $1, $2, $3, $4, $5, $6, $7, METADATA$FILENAME
-    FROM @BRONZE.STG_S3_AMAR/repayments.csv
-  )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER) ON_ERROR = CONTINUE;
+COPY INTO BRONZE.RAW_REPAYMENTS
+  FROM @BRONZE.STG_S3_AMAR/repayments.csv
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR = CONTINUE;
 
-COPY INTO BRONZE.RAW_SAVINGS (account_id, customer_id, account_type, balance, interest_rate, opened_at, status, _source_file)
-  FROM (
-    SELECT $1, $2, $3, $4, $5, $6, $7, METADATA$FILENAME
-    FROM @BRONZE.STG_S3_AMAR/savings.csv
-  )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER) ON_ERROR = CONTINUE;
+COPY INTO BRONZE.RAW_SAVINGS
+  FROM @BRONZE.STG_S3_AMAR/savings.csv
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR = CONTINUE;
 
-COPY INTO BRONZE.RAW_TRANSACTIONS (txn_id, account_id, txn_type, channel, amount, txn_ts, _source_file)
-  FROM (
-    SELECT $1, $2, $3, $4, $5, $6, METADATA$FILENAME
-    FROM @BRONZE.STG_S3_AMAR/transactions.csv
-  )
-  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER) ON_ERROR = CONTINUE;
+COPY INTO BRONZE.RAW_TRANSACTIONS
+  FROM @BRONZE.STG_S3_AMAR/transactions.csv
+  FILE_FORMAT = (FORMAT_NAME = BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR = CONTINUE;
 
 -- ---------------------------------------------------------------------
 -- DEMO: file formats (Parquet + semi-structured JSON)

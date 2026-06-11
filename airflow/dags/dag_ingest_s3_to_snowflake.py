@@ -20,13 +20,13 @@ TABLES = {
     "transactions": "transactions.csv",
 }
 
-# Minimal COPY (relies on table column order + MATCH_BY_COLUMN_NAME via header)
+# Standard COPY INTO (positional, header skipped by FF_CSV_NOHEADER)
 def copy_sql(table, file):
     return f"""
     COPY INTO AMAR_WORKSHOP.BRONZE.RAW_{table.upper()}
     FROM @AMAR_WORKSHOP.BRONZE.STG_S3_AMAR/{file}
-    FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV)
-    MATCH_BY_COLUMN_NAME=CASE_INSENSITIVE ON_ERROR=CONTINUE;
+    FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
+    ON_ERROR=CONTINUE;
     """
 
 with DAG(

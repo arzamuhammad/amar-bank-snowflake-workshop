@@ -30,59 +30,37 @@ default_args = {
 # COPY INTO statements (one per Bronze table)
 COPY_CUSTOMERS = """
 COPY INTO AMAR_WORKSHOP.BRONZE.RAW_CUSTOMERS
-    (customer_id, nik, npwp, full_name, gender, birth_date, province, city,
-     segment, credit_score, monthly_income, phone, email, created_at, updated_at, _source_file)
-FROM (
-  SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, METADATA$FILENAME
   FROM @AMAR_WORKSHOP.BRONZE.STG_S3_AMAR/customers.csv
-)
-FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
-ON_ERROR=CONTINUE;
+  FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR=CONTINUE;
 """
 
 COPY_LOANS = """
 COPY INTO AMAR_WORKSHOP.BRONZE.RAW_LOANS
-    (loan_id, customer_id, product_type, plafond, tenor_months, interest_rate,
-     disbursed_at, status, dpd, is_default, outstanding, updated_at, _source_file)
-FROM (
-  SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, METADATA$FILENAME
   FROM @AMAR_WORKSHOP.BRONZE.STG_S3_AMAR/loans.csv
-)
-FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
-ON_ERROR=CONTINUE;
+  FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR=CONTINUE;
 """
 
 COPY_REPAYMENTS = """
 COPY INTO AMAR_WORKSHOP.BRONZE.RAW_REPAYMENTS
-    (repayment_id, loan_id, due_date, paid_date, amount_due, amount_paid, is_late, _source_file)
-FROM (
-  SELECT $1,$2,$3,$4,$5,$6,$7, METADATA$FILENAME
   FROM @AMAR_WORKSHOP.BRONZE.STG_S3_AMAR/repayments.csv
-)
-FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
-ON_ERROR=CONTINUE;
+  FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR=CONTINUE;
 """
 
 COPY_SAVINGS = """
 COPY INTO AMAR_WORKSHOP.BRONZE.RAW_SAVINGS
-    (account_id, customer_id, account_type, balance, interest_rate, opened_at, status, _source_file)
-FROM (
-  SELECT $1,$2,$3,$4,$5,$6,$7, METADATA$FILENAME
   FROM @AMAR_WORKSHOP.BRONZE.STG_S3_AMAR/savings.csv
-)
-FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
-ON_ERROR=CONTINUE;
+  FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR=CONTINUE;
 """
 
 COPY_TRANSACTIONS = """
 COPY INTO AMAR_WORKSHOP.BRONZE.RAW_TRANSACTIONS
-    (txn_id, account_id, txn_type, channel, amount, txn_ts, _source_file)
-FROM (
-  SELECT $1,$2,$3,$4,$5,$6, METADATA$FILENAME
   FROM @AMAR_WORKSHOP.BRONZE.STG_S3_AMAR/transactions.csv
-)
-FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
-ON_ERROR=CONTINUE;
+  FILE_FORMAT=(FORMAT_NAME=AMAR_WORKSHOP.BRONZE.FF_CSV_NOHEADER)
+  ON_ERROR=CONTINUE;
 """
 
 # dbt Projects on Snowflake — runs transform compute inside Snowflake
