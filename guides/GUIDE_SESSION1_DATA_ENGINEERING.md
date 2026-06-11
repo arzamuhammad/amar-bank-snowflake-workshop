@@ -34,6 +34,10 @@ Ada **3 "pemain"** dalam workshop ini. Bayangkan seperti dapur restoran:
  S3 (file CSV) ──①COPY──► Snowflake BRONZE ──②dbt──► SILVER ──③dbt──► GOLD ──④cek kualitas
 ```
 
+**Diagram alur DAG (versi gambar):**
+
+![Airflow pipeline flow](../diagrams/airflow_pipeline_flow.png)
+
 ---
 
 ## 1. APA YANG HARUS DISIAPKAN DULU (sekali saja)
