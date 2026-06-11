@@ -14,7 +14,7 @@ Requires:
 from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.utils.task_group import TaskGroup
 
 SNOWFLAKE_CONN_ID = "snowflake_default"
@@ -106,17 +106,20 @@ with DAG(
     tags=["amar", "fsi", "workshop"],
 ) as dag:
 
-    common = dict(snowflake_conn_id=SNOWFLAKE_CONN_ID, warehouse=WAREHOUSE, database=DATABASE)
+    common = dict(
+        conn_id=SNOWFLAKE_CONN_ID,
+        hook_params={"warehouse": WAREHOUSE, "database": DATABASE},
+    )
 
     with TaskGroup(group_id="ingest_bronze") as ingest:
-        SnowflakeOperator(task_id="copy_customers", sql=COPY_CUSTOMERS, **common)
-        SnowflakeOperator(task_id="copy_loans", sql=COPY_LOANS, **common)
-        SnowflakeOperator(task_id="copy_repayments", sql=COPY_REPAYMENTS, **common)
-        SnowflakeOperator(task_id="copy_savings", sql=COPY_SAVINGS, **common)
-        SnowflakeOperator(task_id="copy_transactions", sql=COPY_TRANSACTIONS, **common)
+        SQLExecuteQueryOperator(task_id="copy_customers", sql=COPY_CUSTOMERS, **common)
+        SQLExecuteQueryOperator(task_id="copy_loans", sql=COPY_LOANS, **common)
+        SQLExecuteQueryOperator(task_id="copy_repayments", sql=COPY_REPAYMENTS, **common)
+        SQLExecuteQueryOperator(task_id="copy_savings", sql=COPY_SAVINGS, **common)
+        SQLExecuteQueryOperator(task_id="copy_transactions", sql=COPY_TRANSACTIONS, **common)
 
-    dbt_build = SnowflakeOperator(task_id="dbt_build", sql=DBT_BUILD, **common)
-    dbt_snapshot = SnowflakeOperator(task_id="dbt_snapshot_scd2", sql=DBT_SNAPSHOT, **common)
-    dq_gate = SnowflakeOperator(task_id="dq_gate", sql=DQ_GATE, **common)
+    dbt_build = SQLExecuteQueryOperator(task_id="dbt_build", sql=DBT_BUILD, **common)
+    dbt_snapshot = SQLExecuteQueryOperator(task_id="dbt_snapshot_scd2", sql=DBT_SNAPSHOT, **common)
+    dq_gate = SQLExecuteQueryOperator(task_id="dq_gate", sql=DQ_GATE, **common)
 
     ingest >> dbt_snapshot >> dbt_build >> dq_gate

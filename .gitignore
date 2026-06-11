@@ -17,7 +17,8 @@ dbt/logs/
 
 # Airflow / Astro
 airflow/logs/
-airflow/.astro/
+airflow/.astro/dag_integrity_exceptions.txt
+airflow/airflow_settings.yaml
 airflow/include/*.p8
 airflow/include/*.pem
 *.p8

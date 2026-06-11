@@ -135,7 +135,9 @@ openssl rsa -in snowflake_key.p8 -pubout -out snowflake_key.pub
    cd airflow
    astro dev start
    ```
-   Airflow UI: <http://localhost:8080> (user/pass: `admin`/`admin`).
+   Setelah selesai, Astro menampilkan **URL Airflow UI** (mis. `http://localhost:8080`
+   atau `http://airflow.localhost:<port>`) — buka URL tsb di browser.
+   Login default: `admin` / `admin`.
 
 2. Struktur yang dipakai Astro:
    - `dags/` → DAG workshop (sudah ada).

@@ -6,7 +6,7 @@ public S3 stage. Good first hands-on before adding dbt transform.
 from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
 SNOWFLAKE_CONN_ID = "snowflake_default"
 
@@ -39,10 +39,9 @@ with DAG(
     tags=["amar", "fsi", "workshop", "ingestion"],
 ) as dag:
     for tbl, fname in TABLES.items():
-        SnowflakeOperator(
+        SQLExecuteQueryOperator(
             task_id=f"copy_{tbl}",
             sql=copy_sql(tbl, fname),
-            snowflake_conn_id=SNOWFLAKE_CONN_ID,
-            warehouse="AMAR_WORKSHOP_WH",
-            database="AMAR_WORKSHOP",
+            conn_id=SNOWFLAKE_CONN_ID,
+            hook_params={"warehouse": "AMAR_WORKSHOP_WH", "database": "AMAR_WORKSHOP"},
         )
