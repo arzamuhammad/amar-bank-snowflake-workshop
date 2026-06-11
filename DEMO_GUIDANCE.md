@@ -22,6 +22,9 @@ Setiap session punya panduan **terpisah dan detail** (langkah-demi-langkah, tuju
 
 > 🔧 **Panduan tambahan:** instalasi & konfigurasi Snowflake CLI (`snow`) yang detail ada di
 > **[guides/GUIDE_SNOWCLI_SETUP.md](guides/GUIDE_SNOWCLI_SETUP.md)** (dipakai di Session 1 LAB 3).
+>
+> 🧩 **Opsional Session 1 — LAB 4:** membangun pipeline native pakai **Snowflake Tasks**
+> (alternatif Airflow) → **[guides/GUIDE_SESSION1_OPTIONAL_TASKS.md](guides/GUIDE_SESSION1_OPTIONAL_TASKS.md)**.
 
 **Saran agenda 2 hari:**
 - **Hari 1:** Session 0 → Session 1 → Session 2.

@@ -216,3 +216,10 @@ LAB 3 (Airflow):
 ```
 
 ➡️ Lanjut ke **[Session 2 — Analytics + Build Streamlit pakai AI](GUIDE_SESSION2_ANALYTICS.md)**.
+
+---
+
+## (OPSIONAL) LAB 4 — Pipeline native di Snowflake pakai Tasks
+Ingin alternatif Airflow yang **100% di dalam Snowflake** (tanpa Docker)? Lihat
+**[LAB 4 — Data Pipeline pakai TASKS](GUIDE_SESSION1_OPTIONAL_TASKS.md)** (SQL: `../sql/08_pipeline_tasks_optional.sql`).
+Alur sama: COPY INTO → EXECUTE DBT PROJECT → DQ, tapi diorkestrasi memakai **Task graph** Snowflake.
