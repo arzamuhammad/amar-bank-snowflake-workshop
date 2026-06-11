@@ -1,7 +1,11 @@
 -- =====================================================================
 -- 01_ingestion.sql  |  Amar Bank Snowflake Workshop  |  Session 1
--- External stage on a PUBLIC S3 bucket -> COPY INTO Bronze tables.
--- Airflow (SnowflakeOperator) runs these COPY statements.
+--
+-- ISI FILE INI DIBAGI 2 BAGIAN:
+--   BAGIAN 1 (WAJIB, jalankan manual SEKALI): membuat STRUKTUR -> stage + tabel Bronze.
+--   BAGIAN 2 (OPSIONAL): COPY INTO untuk uji manual. DI PIPELINE NYATA, COPY INTO
+--            DIJALANKAN OLEH AIRFLOW (DAG amar_ingest_s3_to_snowflake / _end_to_end),
+--            jadi Anda TIDAK perlu menjalankan COPY INTO di sini kalau pakai Airflow.
 --
 -- >>> EDIT THESE PLACEHOLDERS before running <<<
 --   <<S3_BUCKET>>  e.g. amar-workshop-public
@@ -11,6 +15,11 @@
 USE DATABASE AMAR_WORKSHOP;
 USE SCHEMA BRONZE;
 USE WAREHOUSE AMAR_WORKSHOP_WH;
+
+-- #####################################################################
+-- ## BAGIAN 1 — STRUKTUR (WAJIB, jalankan manual sekali)             ##
+-- ## stage + tabel Bronze harus ADA sebelum Airflow bisa COPY ke sana ##
+-- #####################################################################
 
 -- ---------------------------------------------------------------------
 -- OPTION A (workshop default): PUBLIC bucket, no credentials needed.
@@ -110,10 +119,16 @@ CREATE OR REPLACE TABLE BRONZE.RAW_TRANSACTIONS (
     _source_file STRING
 );
 
+-- #####################################################################
+-- ## BAGIAN 2 — COPY INTO (OPSIONAL / hanya untuk uji manual)        ##
+-- ##                                                                  ##
+-- ## ⚠️ KALAU ANDA PAKAI AIRFLOW: LEWATI bagian ini. Airflow yang     ##
+-- ##    menjalankan COPY INTO (lihat airflow/dags/...).               ##
+-- ## Jalankan blok di bawah HANYA jika ingin mencoba ingest manual    ##
+-- ## tanpa Airflow, atau untuk demo cepat satu kali.                  ##
+-- #####################################################################
 -- ---------------------------------------------------------------------
 -- COPY INTO (CSV with header -> match by column name).
--- Airflow calls each of these as a task.
--- ---------------------------------------------------------------------
 COPY INTO BRONZE.RAW_CUSTOMERS (customer_id, nik, npwp, full_name, gender, birth_date,
         province, city, segment, credit_score, monthly_income, phone, email, created_at, updated_at, _source_file)
   FROM (

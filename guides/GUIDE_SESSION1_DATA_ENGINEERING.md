@@ -56,6 +56,12 @@ Ini ibarat menyiapkan dapur sebelum koki mulai bekerja.
 > 💡 Catatan: langkah A, C, D itu kita jalankan **manual sekali** supaya objeknya ada.
 > Nanti, **Airflow** yang akan menjalankan bagian COPY (isi tabel) & transformasi secara
 > berulang/otomatis. Jadi: *struktur* dibuat manual sekali, *pengisian data* diotomasi Airflow.
+>
+> ❓ **"File `01_ingestion.sql` ada COPY INTO-nya juga — buat apa kalau Airflow yang isi?"**
+> File itu dibagi 2: **BAGIAN 1** = CREATE stage + tabel (WAJIB manual sekali, karena tabel
+> harus ada dulu sebelum Airflow bisa mengisi). **BAGIAN 2** = COPY INTO yang **OPSIONAL** —
+> hanya untuk belajar/uji manual atau kalau tidak pakai Airflow. **Kalau pakai Airflow,
+> jalankan BAGIAN 1 saja; biarkan Airflow yang menjalankan COPY INTO.**
 
 ---
 
