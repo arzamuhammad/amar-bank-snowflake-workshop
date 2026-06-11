@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 08_pipeline_tasks_optional.sql  |  Amar Bank Workshop  |  Session 1 (OPSIONAL)
--- Membangun data pipeline NATIVE di Snowflake memakai TASKS — ALTERNATIF Airflow.
+-- Membangun data pipeline NATIVE di Snowflake memakai TASKS - ALTERNATIF Airflow.
 -- Alur sama: COPY INTO (Bronze) -> EXECUTE DBT PROJECT (snapshot+build) -> DQ gate.
 --
 -- Prasyarat:

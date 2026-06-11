@@ -17,7 +17,7 @@ USE SCHEMA BRONZE;
 USE WAREHOUSE AMAR_WORKSHOP_WH;
 
 -- #####################################################################
--- ## BAGIAN 1 — STRUKTUR (WAJIB, jalankan manual sekali)             ##
+-- ## BAGIAN 1 - STRUKTUR (WAJIB, jalankan manual sekali)             ##
 -- ## stage + tabel Bronze harus ADA sebelum Airflow bisa COPY ke sana ##
 -- #####################################################################
 
@@ -115,9 +115,9 @@ CREATE OR REPLACE TABLE BRONZE.RAW_TRANSACTIONS (
 );
 
 -- #####################################################################
--- ## BAGIAN 2 — COPY INTO (OPSIONAL / hanya untuk uji manual)        ##
+-- ## BAGIAN 2 - COPY INTO (OPSIONAL / hanya untuk uji manual)        ##
 -- ##                                                                  ##
--- ## ⚠️ KALAU ANDA PAKAI AIRFLOW: LEWATI bagian ini. Airflow yang     ##
+-- ## ! KALAU ANDA PAKAI AIRFLOW: LEWATI bagian ini. Airflow yang     ##
 -- ##    menjalankan COPY INTO (lihat airflow/dags/...).               ##
 -- ## Jalankan blok di bawah HANYA jika ingin mencoba ingest manual    ##
 -- ## tanpa Airflow, atau untuk demo cepat satu kali.                  ##

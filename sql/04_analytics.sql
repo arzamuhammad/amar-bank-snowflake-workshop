@@ -50,7 +50,7 @@ GROUP BY 1, 2 ORDER BY outstanding DESC;
 ALTER WAREHOUSE AMAR_WORKSHOP_WH SET WAREHOUSE_SIZE = 'LARGE';
 -- (re-run the query above)
 
--- SCALE OUT (multi-cluster) for concurrency — Enterprise+:
+-- SCALE OUT (multi-cluster) for concurrency - Enterprise+:
 -- ALTER WAREHOUSE AMAR_WORKSHOP_WH SET MIN_CLUSTER_COUNT=1 MAX_CLUSTER_COUNT=3 SCALING_POLICY='STANDARD';
 
 -- Reset to small after the demo
