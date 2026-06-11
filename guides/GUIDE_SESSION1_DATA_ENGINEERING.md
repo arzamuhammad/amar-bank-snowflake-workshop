@@ -147,10 +147,15 @@ EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_WORKSHOP ARGS='build';
 
 ### Langkah 3.1 — Pasang prasyarat
 1. **Airflow lokal** sudah menyala → lihat `../airflow/SETUP_AIRFLOW.md` (`astro dev start`).
-2. **Snowflake CLI (`snow`)** terpasang & koneksi teruji → ikuti
-   **[GUIDE_SNOWCLI_SETUP.md](GUIDE_SNOWCLI_SETUP.md)** (ini bagian yang sering error — sudah dibuat detail).
-   - Verifikasi: `snow connection test -c amar` harus `Status OK`.
-3. **DBT PROJECT object sudah ada** dari LAB 2 (cek `SHOW DBT PROJECTS ...`).
+2. **DBT PROJECT object sudah ada** dari LAB 2 (cek `SHOW DBT PROJECTS IN SCHEMA AMAR_WORKSHOP.SILVER;`).
+3. **Key-pair RSA** sudah dibuat & public key terdaftar di user Snowflake (untuk Airflow Connection).
+
+> ❓ **"Apakah Airflow butuh `snow` CLI untuk menjalankan EXECUTE DBT PROJECT?"**
+> **TIDAK.** Airflow konek ke Snowflake lewat **Airflow Connection (key-pair)** memakai
+> Snowflake Python connector. `EXECUTE DBT PROJECT` hanyalah **perintah SQL** yang dikirim
+> lewat koneksi itu — jadi `snow` CLI **tidak perlu** dipasang untuk pipeline ini.
+> `snow` CLI hanya **opsional** (kalau Anda mau deploy/verifikasi dari terminal) →
+> [GUIDE_SNOWCLI_SETUP.md](GUIDE_SNOWCLI_SETUP.md). Untuk workshop, **lewati saja.**
 
 ### Langkah 3.2 — Beri Airflow "kunci" ke Snowflake (Connection)
 > Airflow di laptop, Snowflake di cloud — belum saling kenal. Connection = alamat + kunci.
@@ -205,8 +210,9 @@ LAB 2 (Snowsight Workspaces, UI):
   - buat dbt project  →  upload/Git folder dbt/  →  dbt deps/build/snapshot  →  DEPLOY (DBT PROJECT object)
 
 LAB 3 (Airflow):
-  - astro dev start  →  pasang snow CLI (GUIDE_SNOWCLI_SETUP.md)  →  buat Connection snowflake_default
+  - astro dev start  →  buat Connection snowflake_default (key-pair)
   - Trigger DAG amar_pipeline_end_to_end  →  COPY INTO → EXECUTE DBT PROJECT → DQ
+  - (snow CLI TIDAK wajib; hanya opsional untuk deploy/verifikasi dari terminal)
 ```
 
 ➡️ Lanjut ke **[Session 2 — Analytics + Build Streamlit pakai AI](GUIDE_SESSION2_ANALYTICS.md)**.

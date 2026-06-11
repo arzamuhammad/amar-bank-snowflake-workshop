@@ -1,7 +1,10 @@
-# GUIDE — Instalasi & Konfigurasi Snowflake CLI (`snow`)
+# GUIDE — Instalasi & Konfigurasi Snowflake CLI (`snow`) — OPSIONAL
 
-> Dipakai di **Session 1 — LAB 3** (Airflow) untuk verifikasi koneksi & (opsional) deploy/execute
-> dbt project dari terminal. Panduan ini detail karena banyak yang error di tahap **konfigurasi koneksi**.
+> ⚠️ **OPSIONAL.** Pipeline Airflow di workshop ini **TIDAK butuh** `snow` CLI — Airflow
+> menjalankan `EXECUTE DBT PROJECT` lewat Airflow Connection (key-pair), bukan lewat `snow`.
+> Pakai panduan ini **hanya jika** Anda ingin deploy/menjalankan dbt atau cek koneksi
+> **dari terminal** (alternatif UI Workspace). Banyak yang error di tahap konfigurasi koneksi,
+> jadi langkahnya dibuat detail.
 
 Sumber resmi: <https://docs.snowflake.com/en/developer-guide/snowflake-cli/installation/installation>
 
