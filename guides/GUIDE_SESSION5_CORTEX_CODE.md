@@ -20,6 +20,52 @@ AI menuliskan & menjalankan kodenya. Cocok untuk yang belum mahir Python/ML.
 
 ---
 
+## 5.0 Packages yang harus di-import di Notebook
+
+Demo ini dijalankan di **Snowflake Notebook**. Sebelum menjalankan prompt,
+tambahkan package berikut lewat tombol **Packages** (kanan atas Notebook) —
+semua tersedia di **Snowflake Anaconda channel**:
+
+| Package | Untuk apa | Wajib? |
+|---------|-----------|--------|
+| `snowflake-ml-python` | Model Registry, training, signature | ✅ Wajib |
+| `snowflake-snowpark-python` | Akses data Snowflake (biasanya sudah ada) | ✅ Wajib |
+| `pandas` | Manipulasi data (DataFrame) | ✅ Wajib |
+| `numpy` | Operasi numerik | ✅ Wajib |
+| `scikit-learn` | train/test split + metrik (accuracy, ROC-AUC, confusion matrix) | ✅ Wajib |
+| `xgboost` | Algoritma klasifikasi (Prompt 3) | ✅ Wajib |
+| `shap` | Explainability / feature importance (Prompt 6) | ⭕ Opsional |
+| `matplotlib` | Plot confusion matrix / grafik | ⭕ Opsional |
+
+👉 **Cell pertama** notebook — import & ambil session aktif:
+```python
+# Session Snowflake (otomatis tersedia di Snowflake Notebook)
+from snowflake.snowpark.context import get_active_session
+session = get_active_session()
+
+# Data
+import pandas as pd
+import numpy as np
+
+# Machine Learning
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, roc_auc_score, confusion_matrix
+
+# Snowflake Model Registry
+from snowflake.ml.registry import Registry
+
+# Opsional (explainability & plot)
+# import shap
+# import matplotlib.pyplot as plt
+```
+
+> 💡 **Penting:** `snowflake-ml-python` sudah membungkus XGBoost + Registry. Jika
+> Cortex Code menyarankan package yang TIDAK ada di Anaconda channel, minta AI
+> menggantinya dengan yang tersedia (lihat 5.3).
+
+---
+
 ## 5.1 Membuka Cortex Code
 👉 **Langkah:** buka Cortex Code (di Snowsight atau CLI). Pastikan terhubung ke akun
 workshop & database `AMAR_WORKSHOP`.
