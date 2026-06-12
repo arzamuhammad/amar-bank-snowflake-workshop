@@ -64,10 +64,20 @@ ALTER SESSION SET USE_CACHED_RESULT = TRUE;
 SELECT product_segment, COUNT(*) FROM GOLD.MART_LOAN_PERFORMANCE GROUP BY 1;
 SELECT product_segment, COUNT(*) FROM GOLD.MART_LOAN_PERFORMANCE GROUP BY 1;
 
--- Inspect: was the result served from cache?
+-- Inspect: durasi & bytes_scanned (real-time, sesi ini).
+-- CATATAN: INFORMATION_SCHEMA.QUERY_HISTORY_BY_SESSION() TIDAK punya kolom
+-- percentage_scanned_from_cache. Kolom itu hanya ada di ACCOUNT_USAGE (lihat di bawah).
 SELECT query_text, execution_status,
-       total_elapsed_time, bytes_scanned,
-       percentage_scanned_from_cache
+       total_elapsed_time, bytes_scanned
 FROM TABLE(INFORMATION_SCHEMA.QUERY_HISTORY_BY_SESSION())
 WHERE query_text ILIKE '%MART_LOAN_PERFORMANCE%'
 ORDER BY start_time DESC LIMIT 5;
+
+-- Untuk metrik cache (% scanned from cache), pakai ACCOUNT_USAGE
+-- (butuh privilege; data ada latency hingga ~45 menit, cakupan 365 hari):
+-- SELECT query_text, execution_status,
+--        total_elapsed_time, bytes_scanned,
+--        percentage_scanned_from_cache
+-- FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+-- WHERE query_text ILIKE '%MART_LOAN_PERFORMANCE%'
+-- ORDER BY start_time DESC LIMIT 5;
