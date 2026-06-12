@@ -157,7 +157,7 @@ openssl rsa -in snowflake_key.p8 -pubout -out snowflake_key.pub
 - Connection Type: `Snowflake`
 - Account: `<YOUR_SNOWFLAKE_ACCOUNT>` (format `ORG-ACCOUNT`, isi sesuai akun Anda)
 - Login: `<user>`
-- Schema: `BRONZE`, Database: `AMAR_WORKSHOP`, Warehouse: `AMAR_WORKSHOP_WH`, Role: `AMAR_DATA_ENGINEER`
+- Schema: `BRONZE`, Database: `AMAR_WORKSHOP`, Warehouse: `AMAR_WORKSHOP_WH`, Role: `ACCOUNTADMIN`
 - Extra (key-pair):
   ```json
   {"private_key_file": "/usr/local/airflow/include/snowflake_key.p8"}
@@ -170,7 +170,7 @@ astro dev run connections add snowflake_default \
   --conn-type snowflake \
   --conn-login <user> \
   --conn-schema BRONZE \
-  --conn-extra '{"account":"<YOUR_SNOWFLAKE_ACCOUNT>","database":"AMAR_WORKSHOP","warehouse":"AMAR_WORKSHOP_WH","role":"AMAR_DATA_ENGINEER","private_key_file":"/usr/local/airflow/include/snowflake_key.p8"}'
+  --conn-extra '{"account":"<YOUR_SNOWFLAKE_ACCOUNT>","database":"AMAR_WORKSHOP","warehouse":"AMAR_WORKSHOP_WH","role":"ACCOUNTADMIN","private_key_file":"/usr/local/airflow/include/snowflake_key.p8"}'
 ```
 > Di Windows PowerShell, perintah multi-baris pakai backtick (`` ` ``) sebagai ganti `\`,
 > atau tulis dalam satu baris.

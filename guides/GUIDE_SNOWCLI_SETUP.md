@@ -74,7 +74,7 @@ Enter connection name: amar
 Enter account: <YOUR_SNOWFLAKE_ACCOUNT>      <- format ORG-ACCOUNT, mis. ABCD-XY12345
 Enter user: <username Snowflake Anda>
 Enter password: (KOSONGKAN, tekan Enter)
-Enter role: AMAR_DATA_ENGINEER
+Enter role: ACCOUNTADMIN
 Enter warehouse: AMAR_WORKSHOP_WH
 Enter database: AMAR_WORKSHOP
 Enter schema: SILVER
@@ -109,7 +109,7 @@ account = "<YOUR_SNOWFLAKE_ACCOUNT>"
 user = "<username>"
 authenticator = "SNOWFLAKE_JWT"
 private_key_file = "/path/lengkap/ke/snowflake_key.p8"
-role = "AMAR_DATA_ENGINEER"
+role = "ACCOUNTADMIN"
 warehouse = "AMAR_WORKSHOP_WH"
 database = "AMAR_WORKSHOP"
 schema = "SILVER"

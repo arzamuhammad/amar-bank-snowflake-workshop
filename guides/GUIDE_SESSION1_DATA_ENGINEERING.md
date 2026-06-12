@@ -87,7 +87,7 @@ dibuat lewat **Workspace** (web IDE di Snowsight) — **tanpa** install apa pun,
 1. Snowsight → menu kiri **Projects → Workspaces**.
 2. Klik **+ Add new** → pilih **dbt Project** (atau "From Git" bila ingin connect repo GitHub).
    Untuk workshop, pilih buat baru / upload.
-3. Beri nama workspace, pilih **Database `AMAR_WORKSHOP`**, **Schema `SILVER`**, **Warehouse `AMAR_WORKSHOP_WH`**, **Role `AMAR_DATA_ENGINEER`**.
+3. Beri nama workspace, pilih **Database `AMAR_WORKSHOP`**, **Schema `SILVER`**, **Warehouse `AMAR_WORKSHOP_WH`**, **Role `ACCOUNTADMIN`**.
 
 👀 **Yang harus dilihat:** editor Workspace terbuka (kiri = daftar file, kanan = editor).
 
@@ -164,7 +164,7 @@ EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_WORKSHOP ARGS='build';
 - **Connection Id:** `snowflake_default` (harus persis ini)
 - **Connection Type:** `Snowflake`
 - **Account:** `<YOUR_SNOWFLAKE_ACCOUNT>` • **Login:** `<username>`
-- **Database:** `AMAR_WORKSHOP` • **Schema:** `BRONZE` • **Warehouse:** `AMAR_WORKSHOP_WH` • **Role:** `AMAR_DATA_ENGINEER`
+- **Database:** `AMAR_WORKSHOP` • **Schema:** `BRONZE` • **Warehouse:** `AMAR_WORKSHOP_WH` • **Role:** `ACCOUNTADMIN`
 - **Extra:** `{"private_key_file": "/usr/local/airflow/include/snowflake_key.p8"}`
 
 👀 Klik **Save** → (opsional **Test**) → muncul sukses.
