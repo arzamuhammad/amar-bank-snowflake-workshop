@@ -1,21 +1,30 @@
 # profiles.yml — untuk dbt Projects on Snowflake (Workspace) & dev lokal.
 #
-# CATATAN PENTING:
-# - Di Snowflake Workspace / DBT PROJECT object, KONEKSI DIURUS OLEH SNOWFLAKE
-#   (pakai role/warehouse sesi Anda). Nilai account/user/authenticator di bawah
-#   DIABAIKAN oleh platform — diberi default agar file selalu ter-render.
-# - Untuk dbt-core LOKAL (opsional), set env var:
-#     export DBT_ACCOUNT=... DBT_USER=... DBT_PRIVATE_KEY_PATH=~/snowflake_key.p8
+# CATATAN PENTING (mengikuti pola Snowflake-Labs tasty_bytes demo):
+# - Di Snowflake Workspace / DBT PROJECT object & saat `snow dbt`, KONEKSI
+#   DIURUS OLEH SNOWFLAKE (pakai connection yang dipilih). account/user
+#   TIDAK diperlukan -> diisi 'not needed' agar file selalu ter-render.
+# - role/warehouse/database/schema HARUS yang valid & accessible, karena
+#   nilai ini divalidasi saat deploy/build.
+# - Default role = ACCOUNTADMIN (selalu ada). Bisa override via env var DBT_ROLE
+#   (mis. AMAR_DATA_ENGINEER) setelah role tsb dibuat di sql/03_governance.
 amar_workshop:
   target: dev
   outputs:
     dev:
       type: snowflake
-      account: "{{ env_var('DBT_ACCOUNT', 'managed_by_snowflake') }}"
-      user: "{{ env_var('DBT_USER', 'managed_by_snowflake') }}"
-      authenticator: snowflake_jwt
-      private_key_path: "{{ env_var('DBT_PRIVATE_KEY_PATH', '') }}"
-      role: "{{ env_var('DBT_ROLE', 'AMAR_DATA_ENGINEER') }}"
+      account: 'not needed'
+      user: 'not needed'
+      role: ACCOUNTADMIN
+      database: AMAR_WORKSHOP
+      warehouse: AMAR_WORKSHOP_WH
+      schema: SILVER
+      threads: 4
+    prod:
+      type: snowflake
+      account: 'not needed'
+      user: 'not needed'
+      role: ACCOUNTADMIN
       database: AMAR_WORKSHOP
       warehouse: AMAR_WORKSHOP_WH
       schema: SILVER
