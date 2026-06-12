@@ -123,13 +123,13 @@ SELECT * FROM AMAR_WORKSHOP.GOLD.MART_LOAN_PERFORMANCE LIMIT 5;
 🎯 Supaya bisa dipanggil otomatis (oleh Airflow di LAB 3), kita **deploy** project dari Workspace.
 
 👉 **Langkah:** di Workspace, klik tombol **Deploy** (atau **Create dbt project object**),
-arahkan ke **Database `AMAR_WORKSHOP`, Schema `SILVER`**, nama objek **`AMAR_WORKSHOP`**.
+arahkan ke **Database `AMAR_WORKSHOP`, Schema `SILVER`**, nama objek **`AMAR_BANK_WORKSHOP`**.
 
 👀 **Yang harus dilihat:** muncul DBT PROJECT object. Verifikasi di worksheet:
 ```sql
 SHOW DBT PROJECTS IN SCHEMA AMAR_WORKSHOP.SILVER;
 -- coba jalankan langsung:
-EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_WORKSHOP ARGS='build';
+EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_BANK_WORKSHOP ARGS='build';
 ```
 👀 Muncul 1 baris project, dan `EXECUTE DBT PROJECT` berjalan. **Inilah yang akan dipanggil Airflow.**
 

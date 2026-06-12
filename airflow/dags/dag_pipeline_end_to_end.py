@@ -8,7 +8,7 @@ Flow:  ingest (COPY INTO Bronze)  ->  dbt build (EXECUTE DBT PROJECT)
 Requires:
   - Airflow connection id "snowflake_default" (key-pair auth recommended)
   - provider: apache-airflow-providers-snowflake
-  - dbt project deployed to Snowflake as AMAR_WORKSHOP.SILVER.AMAR_WORKSHOP
+  - dbt project deployed to Snowflake as AMAR_WORKSHOP.SILVER.AMAR_BANK_WORKSHOP
     (snow dbt deploy) so EXECUTE DBT PROJECT works.
 """
 from datetime import datetime, timedelta
@@ -64,8 +64,9 @@ COPY INTO AMAR_WORKSHOP.BRONZE.RAW_TRANSACTIONS
 """
 
 # dbt Projects on Snowflake — runs transform compute inside Snowflake
-DBT_BUILD = "EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_WORKSHOP ARGS='build';"
-DBT_SNAPSHOT = "EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_WORKSHOP ARGS='snapshot';"
+# Nama project = AMAR_BANK_WORKSHOP (lihat: SHOW DBT PROJECTS IN SCHEMA AMAR_WORKSHOP.SILVER)
+DBT_BUILD = "EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_BANK_WORKSHOP ARGS='build';"
+DBT_SNAPSHOT = "EXECUTE DBT PROJECT AMAR_WORKSHOP.SILVER.AMAR_BANK_WORKSHOP ARGS='snapshot';"
 DQ_GATE = "CALL AMAR_WORKSHOP.GOLD.SP_DQ_GATE();"
 
 with DAG(
